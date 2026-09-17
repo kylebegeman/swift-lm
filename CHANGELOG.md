@@ -8,7 +8,7 @@ Breaking: the package is now `swift-lm` with `SwiftLM*` products, and the `LLM` 
 
 - OS 27 Foundation Models support behind an SDK gate: Private Cloud Compute as an execution target, platform-reported context size, reasoning levels, quota status, tool calling modes, usage-based token accounting, and the OS 27 error taxonomy (`LanguageModelError`, `SystemLanguageModel.Error`, `LanguageModelSession.Error`, `PrivateCloudComputeLanguageModel.Error`).
 - Native Foundation Models streaming through `FoundationModelClient.stream(_:)` and `FoundationModelStreamEvent`, and a provider-neutral `stream(to:)` that uses it.
-- `FoundationModelClient.availability(for:)`, `runtimeProfile(for:)`, `targeting(_:)`, `defaultExecutionTarget`, `defaultUseCase`, and `FoundationModelRuntimeProfile.capabilities`.
+- `FoundationModelClient.availability(for:)`, `runtimeProfile(for:)`, `reportedRuntimeProfile(for:)`, `targeting(_:)`, `defaultExecutionTarget`, `defaultUseCase`, and `FoundationModelRuntimeProfile.capabilities`.
 - `LMReasoningEffort` and `LMGenerationParameters.reasoningEffort`, mapped to Apple reasoning levels, OpenAI `reasoning.effort`, and Anthropic adaptive thinking with `output_config.effort`.
 - `LMCapability.reasoning` and `LMCapability.forcedToolChoice`. Routers skip clients that cannot honor them.
 - `LMStreamEvent.reasoningDelta` and `LMStreamEvent.usage`.

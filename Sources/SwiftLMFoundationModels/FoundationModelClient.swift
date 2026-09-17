@@ -15,6 +15,8 @@ public struct FoundationModelClient: Sendable {
       -> FoundationModelAvailability
   public typealias RuntimeProfileResolver =
     @Sendable (FoundationModelExecutionTarget, FoundationModelUseCase) -> FoundationModelRuntimeProfile
+  public typealias ReportedRuntimeProfileResolver =
+    @Sendable (FoundationModelExecutionTarget, FoundationModelUseCase) async -> FoundationModelRuntimeProfile
   public typealias StreamHandler =
     @Sendable (FoundationModelGenerationRequest)
       -> AsyncThrowingStream<FoundationModelStreamEvent, any Error>
@@ -29,6 +31,11 @@ public struct FoundationModelClient: Sendable {
   /// The use case the provider-neutral `LMClient` conformance uses.
   public var defaultUseCase: FoundationModelUseCase
   public var prewarm: @Sendable (FoundationModelPrewarmRequest) async throws -> Void
+  /// Resolves the profile the platform reports asynchronously, such as the Private Cloud Compute
+  /// context size.
+  public var resolveReportedRuntimeProfile: ReportedRuntimeProfileResolver
+  /// Resolves the profile the platform reports synchronously. Values that are only available
+  /// asynchronously use Apple's documented defaults.
   public var resolveRuntimeProfile: RuntimeProfileResolver
   public var respond: @Sendable (FoundationModelGenerationRequest) async throws
     -> FoundationModelGenerationResponse<String>
@@ -42,6 +49,7 @@ public struct FoundationModelClient: Sendable {
       -> FoundationModelGenerationResponse<String>,
     checkExecutionTargetAvailability: ExecutionTargetAvailabilityCheck? = nil,
     resolveRuntimeProfile: RuntimeProfileResolver? = nil,
+    resolveReportedRuntimeProfile: ReportedRuntimeProfileResolver? = nil,
     streamResponse: StreamHandler? = nil,
     defaultExecutionTarget: FoundationModelExecutionTarget = .automatic,
     defaultUseCase: FoundationModelUseCase = .general
@@ -53,7 +61,11 @@ public struct FoundationModelClient: Sendable {
     self.defaultExecutionTarget = defaultExecutionTarget
     self.defaultUseCase = defaultUseCase
     self.prewarm = prewarm
-    self.resolveRuntimeProfile = resolveRuntimeProfile ?? { target, _ in .preset(for: target) }
+    let resolveRuntimeProfile = resolveRuntimeProfile ?? { target, _ in .preset(for: target) }
+    self.resolveRuntimeProfile = resolveRuntimeProfile
+    self.resolveReportedRuntimeProfile = resolveReportedRuntimeProfile ?? { target, useCase in
+      resolveRuntimeProfile(target, useCase)
+    }
     self.respond = respond
     self.streamResponse = streamResponse ?? { request in
       Self.derivedStream(for: request, respond: respond)
@@ -77,12 +89,23 @@ public struct FoundationModelClient: Sendable {
     await checkExecutionTargetAvailability(target, locale, useCase)
   }
 
-  /// The runtime facts for a target: reported context window, capabilities, and quota.
+  /// The runtime facts the platform reports synchronously: context window, capabilities, and
+  /// quota. Private Cloud Compute reports its context size only asynchronously, so this profile
+  /// uses Apple's documented 32K window for it; use `reportedRuntimeProfile(for:useCase:)` for the
+  /// platform value.
   public func runtimeProfile(
     for target: FoundationModelExecutionTarget? = nil,
     useCase: FoundationModelUseCase? = nil
   ) -> FoundationModelRuntimeProfile {
     resolveRuntimeProfile(target ?? defaultExecutionTarget, useCase ?? defaultUseCase)
+  }
+
+  /// The runtime facts including values the platform reports asynchronously.
+  public func reportedRuntimeProfile(
+    for target: FoundationModelExecutionTarget? = nil,
+    useCase: FoundationModelUseCase? = nil
+  ) async -> FoundationModelRuntimeProfile {
+    await resolveReportedRuntimeProfile(target ?? defaultExecutionTarget, useCase ?? defaultUseCase)
   }
 
   /// Streams a text response as deltas followed by the completed response.
@@ -142,6 +165,9 @@ public struct FoundationModelClient: Sendable {
       },
       resolveRuntimeProfile: { target, useCase in
         foundationModelRuntimeProfile(target: target, useCase: useCase)
+      },
+      resolveReportedRuntimeProfile: { target, useCase in
+        await foundationModelReportedRuntimeProfile(target: target, useCase: useCase)
       },
       streamResponse: { request in
         foundationModelStream(for: request)

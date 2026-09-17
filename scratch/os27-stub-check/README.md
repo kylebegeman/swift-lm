@@ -9,4 +9,6 @@ Xcode 27, and the stub must be updated whenever the gated code touches new SDK s
 scratch/os27-stub-check/check.sh "$(git rev-parse --show-toplevel)"
 ```
 
-Delete this folder once the package is verified with Xcode 27 in CI.
+The stub mirrors what the real SDK reported in CI: `PrivateCloudComputeLanguageModel.contextSize` is
+`get async throws`, and `GenerationOptions(sampling:)` is deprecated in favor of the back-deployed
+`init(samplingMode:)`. Delete this folder once the Xcode 27 CI job is GA and required.

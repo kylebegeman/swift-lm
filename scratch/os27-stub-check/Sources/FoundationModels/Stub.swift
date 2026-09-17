@@ -99,7 +99,7 @@ public final class PrivateCloudComputeLanguageModel: LanguageModel, Sendable {
   public init() {}
   public var availability: Availability { .available }
   public var capabilities: LanguageModelCapabilities { LanguageModelCapabilities() }
-  public var contextSize: Int { 32_768 }
+  public var contextSize: Int { get async throws { 32_768 } }
   public var quotaUsage: QuotaUsage {
     QuotaUsage(isLimitReached: false, limitIncreaseSuggestion: nil, resetDate: nil, status: .belowLimit(.init(isApproachingLimit: false)))
   }
@@ -117,7 +117,9 @@ public struct GenerationOptions: Sendable {
     public static let disallowed = ToolCallingMode()
     public static let required = ToolCallingMode()
   }
-  public init(sampling: SamplingMode? = nil, temperature: Double? = nil, maximumResponseTokens: Int? = nil) {}
+  @available(*, deprecated, renamed: "init(samplingMode:temperature:maximumResponseTokens:)")
+  public init(sampling: SamplingMode?, temperature: Double? = nil, maximumResponseTokens: Int? = nil) {}
+  public init(samplingMode: SamplingMode? = nil, temperature: Double? = nil, maximumResponseTokens: Int? = nil) {}
   public init(samplingMode: SamplingMode?, temperature: Double?, maximumResponseTokens: Int?, toolCallingMode: ToolCallingMode?) {}
 }
 

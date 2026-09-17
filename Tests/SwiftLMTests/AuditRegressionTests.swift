@@ -253,6 +253,34 @@ struct FoundationModelRuntimeTests {
   }
 
   @Test
+  func reportedRuntimeProfileDefaultsToTheSynchronousProfileAndCanBeOverridden() async {
+    let defaultClient = Self.fakeClient()
+    let reportingClient = FoundationModelClient(
+      checkAvailability: { _, _ in .available },
+      countTokens: { _ in 1 },
+      prewarm: { _ in },
+      respond: { request in Self.response(for: request) },
+      resolveReportedRuntimeProfile: { target, _ in
+        FoundationModelRuntimeProfile(
+          executionTarget: target,
+          contextWindowTokens: 30_000,
+          isContextWindowReported: true,
+          supportsReasoning: true
+        )
+      }
+    )
+
+    let fallback = await defaultClient.reportedRuntimeProfile(for: .privateCloudCompute)
+    let reported = await reportingClient.reportedRuntimeProfile(for: .privateCloudCompute)
+
+    #expect(fallback == defaultClient.runtimeProfile(for: .privateCloudCompute))
+    #expect(!fallback.isContextWindowReported)
+    #expect(reported.contextWindowTokens == 30_000)
+    #expect(reported.isContextWindowReported)
+    #expect(reportingClient.runtimeProfile(for: .privateCloudCompute).contextWindowTokens == 32_768)
+  }
+
+  @Test
   func onDeviceClientRejectsReasoningButPrivateCloudPassesItThrough() async throws {
     let capture = RequestCapture<FoundationModelGenerationRequest>()
     let client = Self.fakeClient(capture: capture)

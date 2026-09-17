@@ -135,6 +135,9 @@ func foundationModelAvailability(
 
 // MARK: - Runtime profile
 
+/// The runtime profile the platform can report synchronously. Private Cloud Compute reports its
+/// context size only asynchronously, so this profile uses Apple's documented 32K window for it;
+/// `foundationModelReportedRuntimeProfile` replaces that with the reported value.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 func foundationModelRuntimeProfile(
   target: FoundationModelExecutionTarget,
@@ -161,8 +164,6 @@ func foundationModelRuntimeProfile(
       let model = PrivateCloudComputeLanguageModel()
       var profile = FoundationModelRuntimeProfile(
         executionTarget: .privateCloudCompute,
-        contextWindowTokens: model.contextSize,
-        isContextWindowReported: true,
         supportsReasoning: true,
         quotaStatus: FoundationModelQuotaStatus(quotaUsage: model.quotaUsage)
       )
@@ -174,6 +175,26 @@ func foundationModelRuntimeProfile(
   case .providerPackage, .customLocal:
     return FoundationModelRuntimeProfile(executionTarget: target)
   }
+}
+
+/// The runtime profile including values the platform reports asynchronously, such as the Private
+/// Cloud Compute context size.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+func foundationModelReportedRuntimeProfile(
+  target: FoundationModelExecutionTarget,
+  useCase: FoundationModelUseCase
+) async -> FoundationModelRuntimeProfile {
+  var profile = foundationModelRuntimeProfile(target: target, useCase: useCase)
+  #if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY
+  if #available(iOS 27.0, macOS 27.0, visionOS 27.0, *),
+     target == .privateCloudCompute,
+     let contextSize = try? await PrivateCloudComputeLanguageModel().contextSize
+  {
+    profile.contextWindowTokens = contextSize
+    profile.isContextWindowReported = true
+  }
+  #endif
+  return profile
 }
 
 // MARK: - Token counting and prewarming
@@ -454,7 +475,7 @@ private func foundationModelResolvedSession(
   guard availability.isAvailable
   else { throw FoundationModelFailure(reason: .unavailable(availability)) }
 
-  let profile = foundationModelRuntimeProfile(target: target, useCase: useCase)
+  let profile = await foundationModelReportedRuntimeProfile(target: target, useCase: useCase)
   switch target {
   case .automatic, .onDevice:
     let model = foundationModel(useCase: useCase)
@@ -603,18 +624,31 @@ extension FoundationModelGenerationOptions {
         toolCallingMode: toolCallingMode.foundationToolCallingMode
       )
     }
+    try requireDefaultToolCallingMode()
+    // The OS 27 SDK back-deploys this initializer to the OS 26 releases and deprecates
+    // `init(sampling:)`.
+    return GenerationOptions(
+      samplingMode: sampling.foundationSamplingMode,
+      temperature: temperature,
+      maximumResponseTokens: maximumResponseTokens
+    )
+    #else
+    try requireDefaultToolCallingMode()
+    return GenerationOptions(
+      sampling: sampling.foundationSamplingMode,
+      temperature: temperature,
+      maximumResponseTokens: maximumResponseTokens
+    )
     #endif
+  }
+
+  private func requireDefaultToolCallingMode() throws {
     guard toolCallingMode == .allowed else {
       throw FoundationModelFailure(
         reason: .unsupportedCapability,
         debugDescription: "Tool calling mode \(toolCallingMode.rawValue) requires the OS 27 releases."
       )
     }
-    return GenerationOptions(
-      sampling: sampling.foundationSamplingMode,
-      temperature: temperature,
-      maximumResponseTokens: maximumResponseTokens
-    )
   }
 }
 
