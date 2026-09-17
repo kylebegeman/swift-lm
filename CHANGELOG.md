@@ -8,6 +8,10 @@ Breaking: the package is now `swift-lm` with `SwiftLM*` products, and the `LLM` 
 
 - OS 27 Foundation Models support behind an SDK gate: Private Cloud Compute as an execution target, platform-reported context size, reasoning levels, quota status, tool calling modes, usage-based token accounting, and the OS 27 error taxonomy (`LanguageModelError`, `SystemLanguageModel.Error`, `LanguageModelSession.Error`, `PrivateCloudComputeLanguageModel.Error`).
 - Native Foundation Models streaming through `FoundationModelClient.stream(_:)` and `FoundationModelStreamEvent`, and a provider-neutral `stream(to:)` that uses it.
+- Multi-turn Foundation Models requests: earlier user and assistant messages are replayed as transcript entries (`FoundationModelTranscriptTurn`, `FoundationModelGenerationRequest.history`) instead of being flattened into one prompt.
+- `FoundationModelSession`, a reusable conversation that keeps its transcript, key-value cache, and native tools across turns.
+- `FoundationModelClient.live(model:executionTarget:contextWindowTokens:)`, which runs any OS 27 `LanguageModel`, such as a Core AI or MLX model or a provider package, through SwiftLM routing, receipts, and error normalization. `FoundationModelExecutionTarget.requiresCustomLanguageModel` identifies the targets that need one.
+- Image input: `LMImage`, `LMMessage.images`, and `LMCapability.imageInput`. OpenAI receives `input_image` parts, Anthropic receives image blocks before the text, and Foundation Models receives attachments on the OS 27 releases when the model accepts images.
 - `FoundationModelClient.availability(for:)`, `runtimeProfile(for:)`, `reportedRuntimeProfile(for:)`, `targeting(_:)`, `defaultExecutionTarget`, `defaultUseCase`, and `FoundationModelRuntimeProfile.capabilities`.
 - `LMReasoningEffort` and `LMGenerationParameters.reasoningEffort`, mapped to Apple reasoning levels, OpenAI `reasoning.effort`, and Anthropic adaptive thinking with `output_config.effort`.
 - `LMCapability.reasoning` and `LMCapability.forcedToolChoice`. Routers skip clients that cannot honor them.
@@ -25,7 +29,7 @@ Breaking: the package is now `swift-lm` with `SwiftLM*` products, and the `LLM` 
 - `Codable` on `PromptContract`, `PromptExample`, `LMProviderMetadata`, `LMTokenUsage`, `LMToolDefinition`, `LMJSONSchema`, `LMGenerationParameters`, `LMContextPlan`, `LMContextBudgetReport`, `EvidenceSource`, `EvidenceSpan`, `StructuredGenerationSourceContext`, `ValidationIssue`, `StructuredGenerationValidationResult`, and `PromptEvaluationCase`.
 - `LMToolDefinition.estimatedDefinitionTokens(using:)`.
 - A Private Cloud Compute panel in the showcase.
-- Regression tests for every audit fix, the Foundation Models runtime behavior, and the Claude model-family rules. The suite now has 97 tests.
+- Regression tests for every audit fix, the Foundation Models runtime behavior, conversation mapping, image encoding, and the Claude model-family rules. The suite now has 107 tests.
 
 ### Changed
 
@@ -36,6 +40,8 @@ Breaking: the package is now `swift-lm` with `SwiftLM*` products, and the `LLM` 
 - `FoundationModelRuntimeProfile` reports `isContextWindowReported`, `modelIdentifier`, and capability flags. `reasoningEffort` moved to generation options.
 - `FoundationModelFailureReason.contextExceeded` and `rateLimited` carry the context size, token count, and reset date when the platform reports them. New reasons cover quota, network, service, timeout, transcript, and unsupported capability failures.
 - `FoundationModelClient.prewarm` is async because Private Cloud Compute availability is an async platform call.
+- Provider-neutral Foundation Models requests must contain a user message and end with one. Assistant prefill is rejected as unsupported.
+- The typed Foundation Models APIs (`respond(to:tools:)`, `respond(generating:request:tools:)`, `stream(_:tools:)`, and `prewarm(_:tools:)`) use the client's model, so they work with custom language models.
 - `FoundationModelDefaults.contextWindowTokens` was removed. Use `runtimeProfile(for:)`.
 - `LMToolChoice.none` is now `LMToolChoice.noTools`, because an optional `toolChoice: .none` silently resolved to `Optional.none`.
 - Provider SSE parsing dispatches each `data:` line immediately. Live `URLSession` line streams omit blank separators, so the previous parser delivered every event in one burst after the response finished.

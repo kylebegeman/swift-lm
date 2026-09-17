@@ -7,6 +7,8 @@ public enum FoundationModelFailureReason: Equatable, Sendable {
   case contextExceeded(contextSize: Int? = nil, tokenCount: Int? = nil)
   case decodingFailure
   case guardrailViolation
+  /// An attached image could not be decoded or read.
+  case invalidImage
   /// The network is reachable but Private Cloud Compute could not be contacted.
   case networkUnavailable
   case quotaLimitReached(resetsAt: Date? = nil, limitIncreaseSuggestionAvailable: Bool = false)
@@ -51,6 +53,8 @@ public struct FoundationModelFailure: LMFallbackClassifiableError, Equatable, Lo
       return "Foundation Models could not decode the generated structured response."
     case .guardrailViolation:
       return "Foundation Models guardrails rejected the request or response."
+    case .invalidImage:
+      return "An attached image could not be read."
     case .networkUnavailable:
       return "Private Cloud Compute could not be reached."
     case .quotaLimitReached:
@@ -94,6 +98,8 @@ public struct FoundationModelFailure: LMFallbackClassifiableError, Equatable, Lo
       return .decodingFailed
     case .guardrailViolation:
       return .guardrailViolation
+    case .invalidImage:
+      return .providerError(debugDescription ?? "Invalid image.")
     case .networkUnavailable, .serviceUnavailable:
       return .unavailable
     case .quotaLimitReached:

@@ -173,6 +173,31 @@ SwiftLM should encourage a small number of task-specific tools. If a tool is alw
 
 Provider-neutral `LMClient` calls still reject tool requests for Foundation Models. That boundary is intentional: Apple's `Tool` protocol depends on concrete Swift associated types and app-owned code, so the generic adapter should not pretend it can execute arbitrary provider-neutral tools locally.
 
+## Conversations
+
+Provider-neutral requests with several messages become a real Foundation Models transcript. System and developer messages join the instructions, earlier user and assistant messages become prompt and response entries, and the trailing user messages become the prompt. Consecutive messages from the same role are merged. Requests must end with a user message; assistant prefill is rejected as unsupported.
+
+Each stateless request still opens a fresh session. For a chat-style feature, `FoundationModelSession` keeps one `LanguageModelSession` alive, so the model reuses its transcript and key-value cache between turns and native tools stay available. Requests on one session must not overlap; the framework reports overlapping requests as `concurrentRequests`.
+
+```swift
+let session = try await FoundationModelSession(
+  instructions: "Help plan the trip.",
+  tools: [WeatherTool()]
+)
+let first = try await session.respond(to: "What should I pack for Lisbon?")
+let second = try await session.respond(to: "And for a day trip to Sintra?")
+```
+
+## Images
+
+`LMImage` attaches encoded image data or a local file to a user message. On the OS 27 releases the adapter sends images as prompt attachments when the resolved model reports the vision capability, and the provider-neutral capability set includes `imageInput` only in that case. Foundation Models does not download remote images, so remote URLs are rejected as unsupported and a router can fall back to a provider that fetches them.
+
+## Custom Language Models
+
+On the OS 27 releases, `FoundationModelClient.live(model:executionTarget:contextWindowTokens:)` wraps any `LanguageModel`: a Core AI or MLX model, or a provider package from a model vendor. The client uses the model for every request, reads its capabilities, and describes it with the execution target you pass, so `.customLocal` models report local privacy and `.providerPackage` models report external privacy. `LanguageModel` has no context-size or availability API, so pass the context window when you know it.
+
+SwiftLM does not publish its own clients as `LanguageModel` providers. Model vendors ship Foundation Models packages for that, and those packages plug into this initializer.
+
 ## Dynamic Profiles
 
 Dynamic Profiles let a `LanguageModelSession` change active model, tools, instructions, generation options, and transcript treatment before each prompt. They are useful for multi-phase features that move between cheaper on-device work and higher-capability server work.
@@ -187,7 +212,9 @@ Important transcript rules from WWDC26:
 - Required tool calling needs an exit condition.
 - Preserving transcript state after an error is advanced and requires app repair logic.
 
-SwiftLM translates these concepts into context compiler and workflow primitives rather than copying Apple's API surface directly. `FoundationModelToolCallingMode` maps to Apple's tool calling modes on the 27 releases and is rejected on OS 26 SDKs instead of silently allowing tool calls. Dynamic Profiles themselves, context snapshots, compaction previews, and transcript error policy remain future work.
+SwiftLM translates these concepts into context compiler and workflow primitives rather than copying Apple's API surface directly. `FoundationModelToolCallingMode` maps to Apple's tool calling modes on the 27 releases and is rejected on OS 26 SDKs instead of silently allowing tool calls.
+
+SwiftLM does not wrap Dynamic Profiles. They are a result-builder API whose value comes from Apple's own session lifecycle, and a wrapper would hide it. Apps that want profiles use `LanguageModelSession` directly. Apps that want provider-neutral phases compose `LMWorkflow` steps that call different clients, such as an on-device client for extraction and a Private Cloud Compute client for synthesis. Context snapshots, compaction previews, and transcript error policy remain future work.
 
 ## Provider Packages
 

@@ -94,7 +94,7 @@ public enum FoundationModelAvailability: Equatable, Sendable {
       }
       return "The language model does not support the current locale."
     case let .unsupportedExecutionTarget(target):
-      return "The execution target \(target) is not supported by the live adapter."
+      return "The execution target \(target) needs a LanguageModel. Create the client with FoundationModelClient.live(model:executionTarget:contextWindowTokens:)."
     case .unavailableInBuild:
       return "Foundation Models are unavailable in this build."
     case .unsupportedOS:
@@ -186,7 +186,39 @@ public struct FoundationModelTokenCountRequest: Equatable, Sendable {
   }
 }
 
+/// One earlier turn of a Foundation Models conversation.
+///
+/// The adapter replays turns as transcript entries, so the model sees the conversation's real
+/// structure instead of one flattened prompt.
+public struct FoundationModelTranscriptTurn: Codable, Equatable, Hashable, Sendable {
+  public enum Role: String, Codable, Equatable, Hashable, Sendable {
+    case prompt
+    case response
+  }
+
+  public var role: Role
+  public var text: String
+
+  public init(role: Role, text: String) {
+    self.role = role
+    self.text = text
+  }
+
+  public static func prompt(_ text: String) -> Self {
+    Self(role: .prompt, text: text)
+  }
+
+  public static func response(_ text: String) -> Self {
+    Self(role: .response, text: text)
+  }
+}
+
 public struct FoundationModelGenerationRequest: Equatable, Sendable {
+  /// Earlier turns, replayed as transcript entries before `prompt.userPrompt`.
+  public var history: [FoundationModelTranscriptTurn]
+  /// Images sent with `prompt.userPrompt`. They need a model that accepts images, which means the
+  /// OS 27 releases.
+  public var images: [LMImage]
   public var options: FoundationModelGenerationOptions
   public var prompt: CompiledPrompt
   public var prewarmPromptPrefix: String?
@@ -196,8 +228,12 @@ public struct FoundationModelGenerationRequest: Equatable, Sendable {
     prompt: CompiledPrompt,
     options: FoundationModelGenerationOptions = .deterministic,
     useCase: FoundationModelUseCase = .general,
-    prewarmPromptPrefix: String? = nil
+    prewarmPromptPrefix: String? = nil,
+    history: [FoundationModelTranscriptTurn] = [],
+    images: [LMImage] = []
   ) {
+    self.history = history
+    self.images = images
     self.options = options
     self.prompt = prompt
     self.prewarmPromptPrefix = prewarmPromptPrefix ?? prompt.contextPlan?.prewarmPromptPrefix

@@ -144,6 +144,7 @@ private struct AnthropicMessage: Encodable {
 }
 
 private enum AnthropicMessageContent: Encodable {
+  case image(AnthropicImageContent)
   case raw(JSONValue)
   case text(String)
   case toolResult(AnthropicToolResultContent)
@@ -151,6 +152,8 @@ private enum AnthropicMessageContent: Encodable {
 
   func encode(to encoder: any Encoder) throws {
     switch self {
+    case let .image(image):
+      try image.encode(to: encoder)
     case let .raw(value):
       try value.encode(to: encoder)
     case let .text(text):
@@ -166,6 +169,46 @@ private enum AnthropicMessageContent: Encodable {
 private struct AnthropicTextContent: Encodable {
   var text: String
   var type = "text"
+}
+
+private struct AnthropicImageContent: Encodable {
+  enum Source: Encodable {
+    case base64(mediaType: String, data: String)
+    case url(String)
+
+    func encode(to encoder: any Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      switch self {
+      case let .base64(mediaType, data):
+        try container.encode("base64", forKey: .type)
+        try container.encode(mediaType, forKey: .mediaType)
+        try container.encode(data, forKey: .data)
+      case let .url(url):
+        try container.encode("url", forKey: .type)
+        try container.encode(url, forKey: .url)
+      }
+    }
+
+    enum CodingKeys: String, CodingKey {
+      case data
+      case mediaType = "media_type"
+      case type
+      case url
+    }
+  }
+
+  var source: Source
+  var type = "image"
+
+  init(_ image: LMImage) throws {
+    if let url = image.remoteURL {
+      self.source = .url(url.absoluteString)
+    } else if let (data, mediaType) = try image.loadData() {
+      self.source = .base64(mediaType: mediaType, data: data.base64EncodedString())
+    } else {
+      throw LMClientError(reason: .badRequest, debugDescription: "The image could not be encoded.")
+    }
+  }
 }
 
 private struct AnthropicToolUseContent: Encodable {
@@ -295,10 +338,7 @@ private extension LMRequest {
         if index < conversationalMessages.endIndex,
            conversationalMessages[index].role == .user
         {
-          let userMessage = conversationalMessages[index]
-          if !userMessage.content.isEmpty {
-            content.append(.text(userMessage.content))
-          }
+          content.append(contentsOf: try conversationalMessages[index].anthropicContent)
           index = conversationalMessages.index(after: index)
         }
 
@@ -343,6 +383,12 @@ private extension LMRequest {
 private extension LMMessage {
   var anthropicContent: [AnthropicMessageContent] {
     get throws {
+      guard images.isEmpty || role == .user else {
+        throw LMClientError(
+          reason: .badRequest,
+          debugDescription: "Only user messages can carry images."
+        )
+      }
       switch role {
       case .assistant:
         if let providerContent,
@@ -360,7 +406,11 @@ private extension LMMessage {
         return content
       case .tool:
         return try anthropicToolResultContent
-      case .developer, .system, .user:
+      case .user:
+        // Anthropic recommends placing images before the text that refers to them.
+        let imageContent = try images.map { AnthropicMessageContent.image(try AnthropicImageContent($0)) }
+        return imageContent + (content.isEmpty ? [] : [.text(content)])
+      case .developer, .system:
         return content.isEmpty ? [] : [.text(content)]
       }
     }

@@ -105,7 +105,56 @@ private struct OpenAIReasoningConfig: Encodable {
 
 private struct OpenAIInputMessage: Encodable {
   var role: String
-  var content: String
+  var content: OpenAIInputMessageContent
+
+  init(role: String, content: String) {
+    self.role = role
+    self.content = .text(content)
+  }
+
+  init(role: String, parts: [OpenAIInputContentPart]) {
+    self.role = role
+    self.content = .parts(parts)
+  }
+}
+
+private enum OpenAIInputMessageContent: Encodable {
+  case parts([OpenAIInputContentPart])
+  case text(String)
+
+  func encode(to encoder: any Encoder) throws {
+    switch self {
+    case let .parts(parts):
+      try parts.encode(to: encoder)
+    case let .text(text):
+      try text.encode(to: encoder)
+    }
+  }
+}
+
+private enum OpenAIInputContentPart: Encodable {
+  case image(url: String)
+  case text(String)
+
+  func encode(to encoder: any Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    switch self {
+    case let .image(url):
+      try container.encode("input_image", forKey: .type)
+      try container.encode(url, forKey: .imageURL)
+      try container.encode("auto", forKey: .detail)
+    case let .text(text):
+      try container.encode("input_text", forKey: .type)
+      try container.encode(text, forKey: .text)
+    }
+  }
+
+  enum CodingKeys: String, CodingKey {
+    case detail
+    case imageURL = "image_url"
+    case text
+    case type
+  }
 }
 
 private enum OpenAIInputItem: Encodable {
@@ -280,6 +329,12 @@ private extension LMRequest {
 private extension LMMessage {
   var openAIInputItems: [OpenAIInputItem] {
     get throws {
+      guard images.isEmpty || role == .user else {
+        throw LMClientError(
+          reason: .badRequest,
+          debugDescription: "Only user messages can carry images."
+        )
+      }
       switch role {
       case .assistant:
         if let providerContent,
@@ -297,6 +352,16 @@ private extension LMMessage {
         return inputItems
       case .tool:
         return [.functionCallOutput(try OpenAIFunctionCallOutputInput(message: self))]
+      case .user where !images.isEmpty:
+        var parts: [OpenAIInputContentPart] = []
+        if !content.isEmpty {
+          parts.append(.text(content))
+        }
+        for image in images {
+          guard let url = try image.remoteURL?.absoluteString ?? image.dataURL() else { continue }
+          parts.append(.image(url: url))
+        }
+        return [.message(OpenAIInputMessage(role: role.openAIRole, parts: parts))]
       case .developer, .system, .user:
         return [.message(OpenAIInputMessage(role: role.openAIRole, content: content))]
       }

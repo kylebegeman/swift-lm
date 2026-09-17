@@ -49,7 +49,9 @@ Capability negotiation is intentionally explicit. Adapters publish support for t
 
 `FoundationModelClient` conforms to `LMClient`. Its provider-neutral capabilities come from the runtime profile of its `defaultExecutionTarget`: the platform-reported context window, and `reasoning` when the resolved model supports it. `FoundationModelClient.live.targeting(.privateCloudCompute)` is the same adapter pointed at Apple's server model, with `LMPrivacyMode.privateCloudCompute` metadata.
 
-The common `respond(to:)` API compiles an `LMRequest` into the Foundation Models request type, passes `reasoningEffort` through as an Apple reasoning level, and returns finish reason, usage, and reasoning text. `stream(to:)` uses native Foundation Models streaming. Typed guided generation remains available through the Foundation-specific API when Apple's `FoundationModels` framework can be imported.
+The common `respond(to:)` API compiles an `LMRequest` into the Foundation Models request type, replays earlier messages as transcript entries, passes images and `reasoningEffort` through when the model supports them, and returns finish reason, usage, and reasoning text. `stream(to:)` uses native Foundation Models streaming. Typed guided generation remains available through the Foundation-specific API when Apple's `FoundationModels` framework can be imported.
+
+`FoundationModelClient.live(model:executionTarget:contextWindowTokens:)` puts any OS 27 `LanguageModel` behind the same adapter, so a Core AI model or a vendor's Foundation Models package can sit in an `LMEndpointRegistry` next to the system models.
 
 Native Foundation Models tool execution is available through the typed Foundation-specific API by passing `[any Tool]` to `FoundationModelClient.respond(to:tools:)`, `respond(generating:request:tools:)`, or `prewarm(_:tools:)`. The small `FoundationModelToolConfiguration` wrapper preserves tool names and approximate definition-token cost for diagnostics without moving Apple framework types into the core target.
 
@@ -66,6 +68,7 @@ This is still the preferred default for offline Apple app flows.
 - `.jsonObject` and `.jsonSchema` become `text.format`
 - tools become function tools
 - tool choices are encoded as `auto`, `none`, `required`, or named function choice
+- images on user messages become `input_image` parts with a remote URL or a base64 data URL
 - assistant tool calls and tool-result messages become native `function_call` and `function_call_output` input items; replayed calls omit the item `id`, and a tool result flagged as an error is prefixed with `Tool error:` because the API has no error flag
 - `reasoningEffort` becomes `reasoning.effort`
 - `store` is `false` unless `storesResponses` is set, and stateless reasoning requests ask for `reasoning.encrypted_content` so reasoning items can be replayed through `LMMessage.providerContent`
@@ -90,6 +93,7 @@ The adapter follows the public OpenAI Responses and Structured Outputs documenta
 
 - `instructions` and system/developer messages become the Anthropic `system` field
 - user/assistant messages become Anthropic `messages`; empty text blocks and empty assistant turns are omitted
+- images on user messages become image blocks with a URL or base64 source, placed before the text
 - strict `.jsonSchema` formats become native `output_config.format`; non-strict schemas and `.jsonObject` are appended to system instructions
 - tools become Anthropic tool definitions; `strict` is forwarded only when `forwardsStrictToolSchemas` is on
 - tool choices map to `auto`, `none`, `any`, or a named tool

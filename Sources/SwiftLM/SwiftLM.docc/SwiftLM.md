@@ -34,6 +34,7 @@ Use this product to:
 - ``LMResponse``
 - ``LMStreamEvent``
 - ``LMMessage``
+- ``LMImage``
 - ``LMProviderContent``
 - ``LMReasoningEffort``
 - ``LMGenerationParameters``

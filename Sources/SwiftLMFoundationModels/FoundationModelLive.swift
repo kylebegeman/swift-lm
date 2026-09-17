@@ -3,14 +3,15 @@ import SwiftLM
 
 #if canImport(FoundationModels)
 import FoundationModels
+import ImageIO
 
 // MARK: - SDK gate
 //
-// OS 27 symbols (Private Cloud Compute, `LanguageModelError`, `ContextOptions`, tool calling
-// modes, and usage reporting) exist only in the OS 27 SDKs that ship with Xcode 27 and Swift 6.4.
-// `compiler(>=6.4)` keeps them out of OS 26 SDK builds, and `#available` checks keep them off
-// OS 26 devices at runtime. Define `SWIFTLM_OS26_SDK_ONLY` to build with a Swift 6.4 toolchain
-// that still uses an OS 26 SDK.
+// OS 27 symbols (Private Cloud Compute, custom `LanguageModel` sessions, image attachments,
+// `LanguageModelError`, `ContextOptions`, tool calling modes, and usage reporting) exist only in
+// the OS 27 SDKs that ship with Xcode 27 and Swift 6.4. `compiler(>=6.4)` keeps them out of OS 26
+// SDK builds, and `#available` checks keep them off OS 26 devices at runtime. Define
+// `SWIFTLM_OS26_SDK_ONLY` to build with a Swift 6.4 toolchain that still uses an OS 26 SDK.
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 public struct FoundationModelToolConfiguration: Sendable {
@@ -47,20 +48,14 @@ extension FoundationModelClient {
     _ request: FoundationModelPrewarmRequest,
     tools: [any Tool]
   ) async throws {
-    try await foundationModelPrewarm(
-      for: request,
-      toolConfiguration: FoundationModelToolConfiguration(tools: tools)
-    )
+    try await foundationModelPrewarm(for: request, source: liveSessionSource, tools: tools)
   }
 
   public func respond(
     to request: FoundationModelGenerationRequest,
     tools: [any Tool]
   ) async throws -> FoundationModelGenerationResponse<String> {
-    try await foundationModelStringResponse(
-      for: request,
-      toolConfiguration: FoundationModelToolConfiguration(tools: tools)
-    )
+    try await foundationModelStringResponse(for: request, source: liveSessionSource, tools: tools)
   }
 
   public func respond<Content: Generable & Sendable>(
@@ -71,7 +66,8 @@ extension FoundationModelClient {
     try await foundationModelGeneratedResponse(
       generating: type,
       for: request,
-      toolConfiguration: FoundationModelToolConfiguration(tools: tools)
+      source: liveSessionSource,
+      tools: tools
     )
   }
 
@@ -79,10 +75,7 @@ extension FoundationModelClient {
     _ request: FoundationModelGenerationRequest,
     tools: [any Tool]
   ) -> AsyncThrowingStream<FoundationModelStreamEvent, any Error> {
-    foundationModelStream(
-      for: request,
-      toolConfiguration: FoundationModelToolConfiguration(tools: tools)
-    )
+    foundationModelStream(for: request, source: liveSessionSource, tools: tools)
   }
 }
 
@@ -217,31 +210,339 @@ func foundationModelTokenCount(
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 func foundationModelPrewarm(
   for request: FoundationModelPrewarmRequest,
-  toolConfiguration: FoundationModelToolConfiguration = .none
+  source: FoundationModelSessionSource,
+  tools: [any Tool]
 ) async throws {
-  let resolved = try await foundationModelResolvedSession(
-    target: request.executionTarget,
-    useCase: request.useCase,
-    tools: toolConfiguration.tools,
-    instructions: request.instructions.nilIfEmpty
+  let live = try await foundationModelOpenSession(
+    source: source,
+    configuration: FoundationModelSessionConfiguration(
+      instructions: request.instructions.nilIfEmpty,
+      target: request.executionTarget,
+      tools: tools,
+      useCase: request.useCase
+    )
   )
-  resolved.session.prewarm(promptPrefix: request.promptPrefix.map(Prompt.init))
+  live.session.prewarm(promptPrefix: request.promptPrefix.map(Prompt.init))
+}
+
+// MARK: - Session sources
+
+/// Where live sessions come from: Apple's system models, or an app-supplied `LanguageModel` on the
+/// OS 27 releases.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+struct FoundationModelSessionSource: Sendable {
+  var availability:
+    @Sendable (FoundationModelExecutionTarget, Locale?, FoundationModelUseCase) async
+      -> FoundationModelAvailability
+  var countTokens: @Sendable (FoundationModelTokenCountRequest) async throws -> Int
+  var makeSession: @Sendable (FoundationModelSessionConfiguration) throws -> FoundationModelSessionHandle
+  var onDeviceAvailability: @Sendable (Locale?, FoundationModelUseCase) -> FoundationModelAvailability
+  var reportedRuntimeProfile:
+    @Sendable (FoundationModelExecutionTarget, FoundationModelUseCase) async
+      -> FoundationModelRuntimeProfile
+  var runtimeProfile:
+    @Sendable (FoundationModelExecutionTarget, FoundationModelUseCase) -> FoundationModelRuntimeProfile
+
+  static let system = Self(
+    availability: { target, locale, useCase in
+      await foundationModelAvailability(target: target, locale: locale, useCase: useCase)
+    },
+    countTokens: { request in
+      try await foundationModelTokenCount(for: request)
+    },
+    makeSession: { configuration in
+      try foundationModelSystemSession(configuration)
+    },
+    onDeviceAvailability: { locale, useCase in
+      foundationModelAvailability(locale: locale, useCase: useCase)
+    },
+    reportedRuntimeProfile: { target, useCase in
+      await foundationModelReportedRuntimeProfile(target: target, useCase: useCase)
+    },
+    runtimeProfile: { target, useCase in
+      foundationModelRuntimeProfile(target: target, useCase: useCase)
+    }
+  )
+}
+
+/// What a session source needs to open a session.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+struct FoundationModelSessionConfiguration: Sendable {
+  var history: [FoundationModelTranscriptTurn] = []
+  var instructions: String?
+  var target: FoundationModelExecutionTarget
+  var tools: [any Tool] = []
+  var useCase: FoundationModelUseCase
+}
+
+/// A session a source created, with the on-device model when there is one.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+struct FoundationModelSessionHandle: Sendable {
+  var session: LanguageModelSession
+  /// The on-device model, used for exact token counting. `nil` for server and custom models.
+  var systemModel: SystemLanguageModel?
+}
+
+/// An open session and the runtime facts the adapter reports for it.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+struct FoundationModelLiveSession: Sendable {
+  var handle: FoundationModelSessionHandle
+  var profile: FoundationModelRuntimeProfile
+
+  var session: LanguageModelSession {
+    handle.session
+  }
+
+  var systemModel: SystemLanguageModel? {
+    handle.systemModel
+  }
+}
+
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+extension FoundationModelClient {
+  /// The session source behind the typed APIs: Apple's system models unless the client wraps a
+  /// custom `LanguageModel`.
+  var liveSessionSource: FoundationModelSessionSource {
+    (sessionSource?.value as? FoundationModelSessionSource) ?? .system
+  }
+
+  /// Builds a live client whose closures and typed APIs all use `source`.
+  static func makeLive(
+    source: FoundationModelSessionSource,
+    defaultExecutionTarget: FoundationModelExecutionTarget = .automatic
+  ) -> Self {
+    var client = Self(
+      checkAvailability: { locale, useCase in
+        source.onDeviceAvailability(locale, useCase)
+      },
+      countTokens: { request in
+        try await source.countTokens(request)
+      },
+      prewarm: { request in
+        try await foundationModelPrewarm(for: request, source: source, tools: [])
+      },
+      respond: { request in
+        try await foundationModelStringResponse(for: request, source: source, tools: [])
+      },
+      checkExecutionTargetAvailability: { target, locale, useCase in
+        await source.availability(target, locale, useCase)
+      },
+      resolveRuntimeProfile: { target, useCase in
+        source.runtimeProfile(target, useCase)
+      },
+      resolveReportedRuntimeProfile: { target, useCase in
+        await source.reportedRuntimeProfile(target, useCase)
+      },
+      streamResponse: { request in
+        foundationModelStream(for: request, source: source, tools: [])
+      },
+      defaultExecutionTarget: defaultExecutionTarget
+    )
+    client.sessionSource = FoundationModelSessionSourceBox(value: source)
+    return client
+  }
+}
+
+/// Checks availability for the target, then opens a session and reports its runtime profile.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+func foundationModelOpenSession(
+  source: FoundationModelSessionSource,
+  configuration: FoundationModelSessionConfiguration
+) async throws -> FoundationModelLiveSession {
+  let availability = await source.availability(configuration.target, nil, configuration.useCase)
+  guard availability.isAvailable
+  else { throw FoundationModelFailure(reason: .unavailable(availability)) }
+
+  let handle = try source.makeSession(configuration)
+  let profile = await source.reportedRuntimeProfile(configuration.target, configuration.useCase)
+  return FoundationModelLiveSession(handle: handle, profile: profile)
+}
+
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+private func foundationModelSystemSession(
+  _ configuration: FoundationModelSessionConfiguration
+) throws -> FoundationModelSessionHandle {
+  switch configuration.target {
+  case .automatic, .onDevice:
+    let model = foundationModel(useCase: configuration.useCase)
+    let session: LanguageModelSession
+    if configuration.history.isEmpty {
+      session = LanguageModelSession(
+        model: model,
+        tools: configuration.tools,
+        instructions: configuration.instructions
+      )
+    } else {
+      session = LanguageModelSession(
+        model: model,
+        tools: configuration.tools,
+        transcript: foundationModelTranscript(for: configuration)
+      )
+    }
+    return FoundationModelSessionHandle(session: session, systemModel: model)
+  case .privateCloudCompute:
+    #if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY
+    if #available(iOS 27.0, macOS 27.0, visionOS 27.0, *) {
+      return FoundationModelSessionHandle(
+        session: foundationModelSession(
+          model: PrivateCloudComputeLanguageModel(),
+          configuration: configuration
+        ),
+        systemModel: nil
+      )
+    }
+    #endif
+    throw FoundationModelFailure(reason: .unavailable(.unsupportedOS))
+  case .providerPackage, .customLocal:
+    throw FoundationModelFailure(
+      reason: .unavailable(.unsupportedExecutionTarget(configuration.target.diagnosticName))
+    )
+  }
+}
+
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+private func foundationModel(
+  useCase: FoundationModelUseCase
+) -> SystemLanguageModel {
+  switch useCase {
+  case .general:
+    return .default
+  case .contentTagging:
+    return SystemLanguageModel(useCase: .contentTagging)
+  }
+}
+
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+private func foundationModelValidate(
+  _ request: FoundationModelGenerationRequest,
+  against profile: FoundationModelRuntimeProfile
+) throws {
+  if request.options.reasoningEffort != nil, !profile.supportsReasoning {
+    throw FoundationModelFailure(
+      reason: .unsupportedCapability,
+      debugDescription: "\(profile.modelIdentifier) does not support reasoning. Leave reasoningEffort nil or target Private Cloud Compute."
+    )
+  }
+  if !request.images.isEmpty, !profile.supportsVision {
+    throw FoundationModelFailure(
+      reason: .unsupportedCapability,
+      debugDescription: "\(profile.modelIdentifier) does not accept images."
+    )
+  }
+}
+
+// MARK: - Transcripts
+
+/// Rebuilds a session transcript: an instructions entry that describes the tools, followed by the
+/// earlier turns.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+func foundationModelTranscript(
+  for configuration: FoundationModelSessionConfiguration
+) -> Transcript {
+  var entries: [Transcript.Entry] = []
+  if configuration.instructions != nil || !configuration.tools.isEmpty {
+    let segments: [Transcript.Segment] = configuration.instructions.map {
+      [.text(Transcript.TextSegment(content: $0))]
+    } ?? []
+    entries.append(
+      .instructions(
+        Transcript.Instructions(
+          segments: segments,
+          toolDefinitions: configuration.tools.map { Transcript.ToolDefinition(tool: $0) }
+        )
+      )
+    )
+  }
+  entries.append(contentsOf: foundationModelTranscriptEntries(for: configuration.history))
+  return Transcript(entries: entries)
+}
+
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+func foundationModelTranscriptEntries(
+  for history: [FoundationModelTranscriptTurn]
+) -> [Transcript.Entry] {
+  history.map { turn in
+    let segments: [Transcript.Segment] = [.text(Transcript.TextSegment(content: turn.text))]
+    switch turn.role {
+    case .prompt:
+      return .prompt(Transcript.Prompt(segments: segments))
+    case .response:
+      return .response(Transcript.Response(assetIDs: [], segments: segments))
+    }
+  }
+}
+
+/// The text of the instructions, prompts, and responses in a transcript, for heuristic estimates.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+func foundationModelTranscriptText(_ entries: some Sequence<Transcript.Entry>) -> String {
+  entries.compactMap { entry -> String? in
+    let segments: [Transcript.Segment]
+    switch entry {
+    case let .instructions(instructions):
+      segments = instructions.segments
+    case let .prompt(prompt):
+      segments = prompt.segments
+    case let .response(response):
+      segments = response.segments
+    default:
+      return nil
+    }
+    return segments.compactMap { segment -> String? in
+      guard case let .text(text) = segment else { return nil }
+      return text.content
+    }
+    .joined(separator: "\n")
+  }
+  .joined(separator: "\n\n")
+}
+
+// MARK: - Prompts
+
+/// Builds the prompt for one request. Images need the OS 27 releases.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+func foundationModelPrompt(text: String, images: [LMImage]) throws -> Prompt {
+  guard !images.isEmpty else { return Prompt(text) }
+  #if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY
+  if #available(iOS 27.0, macOS 27.0, visionOS 27.0, *) {
+    let attachments = try images.map(foundationModelAttachmentPrompt)
+    return Prompt {
+      text
+      attachments
+    }
+  }
+  #endif
+  throw FoundationModelFailure(
+    reason: .unsupportedCapability,
+    debugDescription: "Image prompts require the OS 27 releases."
+  )
 }
 
 // MARK: - Generation
 
+/// Measures a request's input tokens when the platform does not report usage.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+typealias FoundationModelInputMeasurement = @Sendable (Prompt) async -> Int?
+
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 func foundationModelStringResponse(
   for request: FoundationModelGenerationRequest,
-  toolConfiguration: FoundationModelToolConfiguration = .none
+  source: FoundationModelSessionSource,
+  tools: [any Tool]
 ) async throws -> FoundationModelGenerationResponse<String> {
-  try await foundationModelResponse(
-    for: request,
-    toolConfiguration: toolConfiguration
-  ) { session, options in
+  let live = try await foundationModelOpenRequestSession(for: request, source: source, tools: tools)
+  return try await foundationModelGenerate(
+    request: request,
+    live: live,
+    estimatedInputTokens: foundationModelEstimatedInputTokens(for: request, tools: tools),
+    measureInput: foundationModelRequestInputMeasurement(
+      request: request,
+      model: live.systemModel,
+      tools: tools
+    )
+  ) { session, prompt, options in
     let response = try await foundationModelRespondText(
       session: session,
-      prompt: Prompt(request.prompt.userPrompt),
+      prompt: prompt,
       options: options,
       request: request
     )
@@ -253,15 +554,23 @@ func foundationModelStringResponse(
 private func foundationModelGeneratedResponse<Content: Generable & Sendable>(
   generating type: Content.Type,
   for request: FoundationModelGenerationRequest,
-  toolConfiguration: FoundationModelToolConfiguration = .none
+  source: FoundationModelSessionSource,
+  tools: [any Tool]
 ) async throws -> FoundationModelGenerationResponse<Content> {
-  try await foundationModelResponse(
-    for: request,
-    toolConfiguration: toolConfiguration
-  ) { session, options in
+  let live = try await foundationModelOpenRequestSession(for: request, source: source, tools: tools)
+  return try await foundationModelGenerate(
+    request: request,
+    live: live,
+    estimatedInputTokens: foundationModelEstimatedInputTokens(for: request, tools: tools),
+    measureInput: foundationModelRequestInputMeasurement(
+      request: request,
+      model: live.systemModel,
+      tools: tools
+    )
+  ) { session, prompt, options in
     let response = try await foundationModelRespondGenerating(
       session: session,
-      prompt: Prompt(request.prompt.userPrompt),
+      prompt: prompt,
       generating: type,
       options: options,
       request: request
@@ -270,73 +579,55 @@ private func foundationModelGeneratedResponse<Content: Generable & Sendable>(
   }
 }
 
+/// Opens a single-use session for a stateless request and prewarms its prompt prefix.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModelResponse<Content: Sendable>(
+private func foundationModelOpenRequestSession(
   for request: FoundationModelGenerationRequest,
-  toolConfiguration: FoundationModelToolConfiguration,
-  perform: (LanguageModelSession, GenerationOptions) async throws -> (Content, FoundationModelResponseFacts)
-) async throws -> FoundationModelGenerationResponse<Content> {
-  let resolved = try await foundationModelResolvedSession(
-    target: request.options.executionTarget,
-    useCase: request.useCase,
-    tools: toolConfiguration.tools,
-    instructions: request.prompt.systemInstructions.nilIfEmpty
+  source: FoundationModelSessionSource,
+  tools: [any Tool]
+) async throws -> FoundationModelLiveSession {
+  let live = try await foundationModelOpenSession(
+    source: source,
+    configuration: FoundationModelSessionConfiguration(
+      history: request.history,
+      instructions: request.prompt.systemInstructions.nilIfEmpty,
+      target: request.options.executionTarget,
+      tools: tools,
+      useCase: request.useCase
+    )
   )
-  try foundationModelValidate(request.options, against: resolved.profile)
   if let prewarmPromptPrefix = request.prewarmPromptPrefix {
-    resolved.session.prewarm(promptPrefix: Prompt(prewarmPromptPrefix))
+    live.session.prewarm(promptPrefix: Prompt(prewarmPromptPrefix))
   }
+  return live
+}
 
-  let options = try request.options.foundationGenerationOptions()
-  let startedAt = Date()
-  let estimatedInputTokens = foundationModelEstimatedInputTokens(
-    for: request,
-    toolConfiguration: toolConfiguration
-  )
-
+/// Runs one request on an open session and reports usage, reasoning, and the runtime profile.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+func foundationModelGenerate<Content: Sendable>(
+  request: FoundationModelGenerationRequest,
+  live: FoundationModelLiveSession,
+  estimatedInputTokens: Int,
+  measureInput: FoundationModelInputMeasurement,
+  perform: (LanguageModelSession, Prompt, GenerationOptions) async throws
+    -> (Content, FoundationModelResponseFacts)
+) async throws -> FoundationModelGenerationResponse<Content> {
   do {
-    let (content, facts) = try await perform(resolved.session, options)
-    let completedAt = Date()
-    let renderedOutput = String(describing: content)
-    let measuredInputTokens: Int?
-    if let measured = facts.measuredInputTokens {
-      measuredInputTokens = measured
-    } else {
-      measuredInputTokens = await foundationModelMeasuredInputTokens(
-        model: resolved.systemModel,
-        request: request,
-        tools: toolConfiguration.tools
-      )
-    }
-    let measuredOutputTokens: Int?
-    if let measured = facts.measuredOutputTokens {
-      measuredOutputTokens = measured
-    } else {
-      measuredOutputTokens = await foundationModelMeasuredTokenCount(
-        renderedOutput,
-        model: resolved.systemModel
-      )
-    }
-
-    return FoundationModelGenerationResponse(
+    try foundationModelValidate(request, against: live.profile)
+    let prompt = try foundationModelPrompt(text: request.prompt.userPrompt, images: request.images)
+    let options = try request.options.foundationGenerationOptions()
+    let startedAt = Date()
+    let (content, facts) = try await perform(live.session, prompt, options)
+    return await foundationModelResponse(
       content: content,
-      metadata: request.prompt.metadata,
-      tokenUsage: LMTokenUsage(
-        estimatedInputTokens: estimatedInputTokens,
-        estimatedOutputTokens: TokenCounter.latinHeuristic.count(renderedOutput),
-        measuredInputTokens: measuredInputTokens,
-        measuredOutputTokens: measuredOutputTokens,
-        cachedInputTokens: facts.cachedInputTokens,
-        reasoningTokens: facts.reasoningTokens
-      ),
-      startedAt: startedAt,
-      completedAt: completedAt,
-      finishReason: foundationModelFinishReason(
-        measuredOutputTokens: measuredOutputTokens,
-        maximumResponseTokens: request.options.maximumResponseTokens
-      ),
-      reasoningText: facts.reasoningText,
-      runtimeProfile: resolved.profile
+      renderedOutput: String(describing: content),
+      request: request,
+      live: live,
+      facts: facts,
+      prompt: prompt,
+      estimatedInputTokens: estimatedInputTokens,
+      measureInput: measureInput,
+      startedAt: startedAt
     )
   } catch is CancellationError {
     throw CancellationError()
@@ -345,36 +636,99 @@ private func foundationModelResponse<Content: Sendable>(
   }
 }
 
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+private func foundationModelResponse<Content: Sendable>(
+  content: Content,
+  renderedOutput: String,
+  request: FoundationModelGenerationRequest,
+  live: FoundationModelLiveSession,
+  facts: FoundationModelResponseFacts,
+  prompt: Prompt,
+  estimatedInputTokens: Int,
+  measureInput: FoundationModelInputMeasurement,
+  startedAt: Date
+) async -> FoundationModelGenerationResponse<Content> {
+  let completedAt = Date()
+  let measuredInputTokens: Int?
+  if let measured = facts.measuredInputTokens {
+    measuredInputTokens = measured
+  } else {
+    measuredInputTokens = await measureInput(prompt)
+  }
+  let measuredOutputTokens: Int?
+  if let measured = facts.measuredOutputTokens {
+    measuredOutputTokens = measured
+  } else {
+    measuredOutputTokens = await foundationModelMeasuredTokenCount(
+      renderedOutput,
+      model: live.systemModel
+    )
+  }
+
+  return FoundationModelGenerationResponse(
+    content: content,
+    metadata: request.prompt.metadata,
+    tokenUsage: LMTokenUsage(
+      estimatedInputTokens: estimatedInputTokens,
+      estimatedOutputTokens: TokenCounter.latinHeuristic.count(renderedOutput),
+      measuredInputTokens: measuredInputTokens,
+      measuredOutputTokens: measuredOutputTokens,
+      cachedInputTokens: facts.cachedInputTokens,
+      reasoningTokens: facts.reasoningTokens
+    ),
+    startedAt: startedAt,
+    completedAt: completedAt,
+    finishReason: foundationModelFinishReason(
+      measuredOutputTokens: measuredOutputTokens,
+      maximumResponseTokens: request.options.maximumResponseTokens
+    ),
+    reasoningText: facts.reasoningText,
+    runtimeProfile: live.profile
+  )
+}
+
 // MARK: - Streaming
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 func foundationModelStream(
   for request: FoundationModelGenerationRequest,
-  toolConfiguration: FoundationModelToolConfiguration = .none
+  source: FoundationModelSessionSource,
+  tools: [any Tool]
+) -> AsyncThrowingStream<FoundationModelStreamEvent, any Error> {
+  foundationModelStreamEvents(
+    request: request,
+    estimatedInputTokens: foundationModelEstimatedInputTokens(for: request, tools: tools)
+  ) {
+    let live = try await foundationModelOpenRequestSession(for: request, source: source, tools: tools)
+    let measureInput = foundationModelRequestInputMeasurement(
+      request: request,
+      model: live.systemModel,
+      tools: tools
+    )
+    return (live, measureInput)
+  }
+}
+
+/// Streams one request as text deltas followed by the completed response. `open` runs inside the
+/// stream's task, so a reused session's transcript is read when the request starts.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+func foundationModelStreamEvents(
+  request: FoundationModelGenerationRequest,
+  estimatedInputTokens: Int,
+  open: @escaping @Sendable () async throws
+    -> (FoundationModelLiveSession, FoundationModelInputMeasurement)
 ) -> AsyncThrowingStream<FoundationModelStreamEvent, any Error> {
   AsyncThrowingStream { continuation in
     let task = Task {
       do {
-        let resolved = try await foundationModelResolvedSession(
-          target: request.options.executionTarget,
-          useCase: request.useCase,
-          tools: toolConfiguration.tools,
-          instructions: request.prompt.systemInstructions.nilIfEmpty
-        )
-        try foundationModelValidate(request.options, against: resolved.profile)
-        if let prewarmPromptPrefix = request.prewarmPromptPrefix {
-          resolved.session.prewarm(promptPrefix: Prompt(prewarmPromptPrefix))
-        }
-
+        let (live, measureInput) = try await open()
+        try foundationModelValidate(request, against: live.profile)
+        let prompt = try foundationModelPrompt(text: request.prompt.userPrompt, images: request.images)
         let options = try request.options.foundationGenerationOptions()
         let startedAt = Date()
-        let estimatedInputTokens = foundationModelEstimatedInputTokens(
-          for: request,
-          toolConfiguration: toolConfiguration
-        )
         let stream = foundationModelStreamText(
-          session: resolved.session,
-          prompt: Prompt(request.prompt.userPrompt),
+          session: live.session,
+          prompt: prompt,
           options: options,
           request: request
         )
@@ -396,51 +750,18 @@ func foundationModelStream(
           facts = foundationModelFacts(from: snapshot)
         }
 
-        let completedAt = Date()
-        let measuredInputTokens: Int?
-        if let measured = facts.measuredInputTokens {
-          measuredInputTokens = measured
-        } else {
-          measuredInputTokens = await foundationModelMeasuredInputTokens(
-            model: resolved.systemModel,
-            request: request,
-            tools: toolConfiguration.tools
-          )
-        }
-        let measuredOutputTokens: Int?
-        if let measured = facts.measuredOutputTokens {
-          measuredOutputTokens = measured
-        } else {
-          measuredOutputTokens = await foundationModelMeasuredTokenCount(
-            emittedText,
-            model: resolved.systemModel
-          )
-        }
-
-        continuation.yield(
-          .completed(
-            FoundationModelGenerationResponse(
-              content: emittedText,
-              metadata: request.prompt.metadata,
-              tokenUsage: LMTokenUsage(
-                estimatedInputTokens: estimatedInputTokens,
-                estimatedOutputTokens: TokenCounter.latinHeuristic.count(emittedText),
-                measuredInputTokens: measuredInputTokens,
-                measuredOutputTokens: measuredOutputTokens,
-                cachedInputTokens: facts.cachedInputTokens,
-                reasoningTokens: facts.reasoningTokens
-              ),
-              startedAt: startedAt,
-              completedAt: completedAt,
-              finishReason: foundationModelFinishReason(
-                measuredOutputTokens: measuredOutputTokens,
-                maximumResponseTokens: request.options.maximumResponseTokens
-              ),
-              reasoningText: facts.reasoningText,
-              runtimeProfile: resolved.profile
-            )
-          )
+        let response = await foundationModelResponse(
+          content: emittedText,
+          renderedOutput: emittedText,
+          request: request,
+          live: live,
+          facts: facts,
+          prompt: prompt,
+          estimatedInputTokens: estimatedInputTokens,
+          measureInput: measureInput,
+          startedAt: startedAt
         )
+        continuation.yield(.completed(response))
         continuation.finish()
       } catch is CancellationError {
         continuation.finish(throwing: CancellationError())
@@ -454,84 +775,10 @@ func foundationModelStream(
   }
 }
 
-// MARK: - Session resolution
-
-@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private struct FoundationModelResolvedSession: Sendable {
-  var profile: FoundationModelRuntimeProfile
-  var session: LanguageModelSession
-  /// The on-device model, used for exact token counting. `nil` for server models.
-  var systemModel: SystemLanguageModel?
-}
-
-@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModelResolvedSession(
-  target: FoundationModelExecutionTarget,
-  useCase: FoundationModelUseCase,
-  tools: [any Tool],
-  instructions: String?
-) async throws -> FoundationModelResolvedSession {
-  let availability = await foundationModelAvailability(target: target, locale: nil, useCase: useCase)
-  guard availability.isAvailable
-  else { throw FoundationModelFailure(reason: .unavailable(availability)) }
-
-  let profile = await foundationModelReportedRuntimeProfile(target: target, useCase: useCase)
-  switch target {
-  case .automatic, .onDevice:
-    let model = foundationModel(useCase: useCase)
-    return FoundationModelResolvedSession(
-      profile: profile,
-      session: LanguageModelSession(model: model, tools: tools, instructions: instructions),
-      systemModel: model
-    )
-  case .privateCloudCompute:
-    #if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY
-    if #available(iOS 27.0, macOS 27.0, visionOS 27.0, *) {
-      let session = LanguageModelSession(
-        model: PrivateCloudComputeLanguageModel(),
-        tools: tools,
-        instructions: instructions
-      )
-      return FoundationModelResolvedSession(profile: profile, session: session, systemModel: nil)
-    }
-    #endif
-    throw FoundationModelFailure(reason: .unavailable(.unsupportedOS))
-  case .providerPackage, .customLocal:
-    throw FoundationModelFailure(
-      reason: .unavailable(.unsupportedExecutionTarget(target.diagnosticName))
-    )
-  }
-}
-
-@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModel(
-  useCase: FoundationModelUseCase
-) -> SystemLanguageModel {
-  switch useCase {
-  case .general:
-    return .default
-  case .contentTagging:
-    return SystemLanguageModel(useCase: .contentTagging)
-  }
-}
-
-@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModelValidate(
-  _ options: FoundationModelGenerationOptions,
-  against profile: FoundationModelRuntimeProfile
-) throws {
-  if options.reasoningEffort != nil, !profile.supportsReasoning {
-    throw FoundationModelFailure(
-      reason: .unsupportedCapability,
-      debugDescription: "\(profile.modelIdentifier) does not support reasoning. Leave reasoningEffort nil or target Private Cloud Compute."
-    )
-  }
-}
-
 // MARK: - Request translation
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModelRespondText(
+func foundationModelRespondText(
   session: LanguageModelSession,
   prompt: Prompt,
   options: GenerationOptions,
@@ -556,7 +803,7 @@ private func foundationModelRespondText(
 }
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModelRespondGenerating<Content: Generable>(
+func foundationModelRespondGenerating<Content: Generable>(
   session: LanguageModelSession,
   prompt: Prompt,
   generating type: Content.Type,
@@ -588,7 +835,7 @@ private func foundationModelRespondGenerating<Content: Generable>(
 }
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModelStreamText(
+func foundationModelStreamText(
   session: LanguageModelSession,
   prompt: Prompt,
   options: GenerationOptions,
@@ -672,7 +919,7 @@ extension FoundationModelSamplingMode {
 
 /// Provider-reported facts about one response. Fields stay `nil` when the platform did not report them.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private struct FoundationModelResponseFacts: Sendable {
+struct FoundationModelResponseFacts: Sendable {
   var cachedInputTokens: Int?
   var measuredInputTokens: Int?
   var measuredOutputTokens: Int?
@@ -681,7 +928,7 @@ private struct FoundationModelResponseFacts: Sendable {
 }
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModelFacts<Content>(
+func foundationModelFacts<Content>(
   from response: LanguageModelSession.Response<Content>
 ) -> FoundationModelResponseFacts {
   var facts = FoundationModelResponseFacts()
@@ -695,7 +942,7 @@ private func foundationModelFacts<Content>(
 }
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModelFacts(
+func foundationModelFacts(
   from snapshot: LanguageModelSession.ResponseStream<String>.Snapshot
 ) -> FoundationModelResponseFacts {
   var facts = FoundationModelResponseFacts()
@@ -709,34 +956,65 @@ private func foundationModelFacts(
 }
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModelEstimatedInputTokens(
+func foundationModelEstimatedInputTokens(
   for request: FoundationModelGenerationRequest,
-  toolConfiguration: FoundationModelToolConfiguration
+  tools: [any Tool]
 ) -> Int {
-  TokenCounter.latinHeuristic.count(
-    request.prompt.systemInstructions + "\n\n" + request.prompt.userPrompt
-  ) + toolConfiguration.estimatedDefinitionTokens
+  let text = [
+    request.prompt.systemInstructions,
+    request.history.map(\.text).joined(separator: "\n\n"),
+    request.prompt.userPrompt,
+  ]
+  .filter { !$0.isEmpty }
+  .joined(separator: "\n\n")
+  return TokenCounter.latinHeuristic.count(text)
+    + FoundationModelToolConfiguration(tools: tools).estimatedDefinitionTokens
 }
 
+/// Measures instructions, tool definitions, history, and the prompt of a stateless request.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
-private func foundationModelMeasuredInputTokens(
-  model: SystemLanguageModel?,
+private func foundationModelRequestInputMeasurement(
   request: FoundationModelGenerationRequest,
+  model: SystemLanguageModel?,
   tools: [any Tool]
-) async -> Int? {
-  guard let model, #available(iOS 26.4, macOS 26.4, visionOS 26.4, *) else { return nil }
+) -> FoundationModelInputMeasurement {
+  { prompt in
+    guard let model, #available(iOS 26.4, macOS 26.4, visionOS 26.4, *) else { return nil }
 
-  do {
-    var total = try await model.tokenCount(for: Prompt(request.prompt.userPrompt))
-    if let instructions = request.prompt.systemInstructions.nilIfEmpty {
-      total += try await model.tokenCount(for: Instructions(instructions))
+    do {
+      var total = try await model.tokenCount(for: prompt)
+      if let instructions = request.prompt.systemInstructions.nilIfEmpty {
+        total += try await model.tokenCount(for: Instructions(instructions))
+      }
+      if !tools.isEmpty {
+        total += try await model.tokenCount(for: tools)
+      }
+      if !request.history.isEmpty {
+        total += try await model.tokenCount(
+          for: foundationModelTranscriptEntries(for: request.history)
+        )
+      }
+      return total
+    } catch {
+      return nil
     }
-    if !tools.isEmpty {
-      total += try await model.tokenCount(for: tools)
+  }
+}
+
+/// Measures a reused session's transcript before the request plus the new prompt.
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+func foundationModelSessionInputMeasurement(
+  model: SystemLanguageModel?,
+  transcript: Transcript
+) -> FoundationModelInputMeasurement {
+  { prompt in
+    guard let model, #available(iOS 26.4, macOS 26.4, visionOS 26.4, *) else { return nil }
+
+    do {
+      return try await model.tokenCount(for: transcript) + model.tokenCount(for: prompt)
+    } catch {
+      return nil
     }
-    return total
-  } catch {
-    return nil
   }
 }
 
@@ -831,6 +1109,126 @@ func foundationModelFailure(
 // MARK: - OS 27 mappings
 
 #if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY
+@available(iOS 27.0, macOS 27.0, visionOS 27.0, *)
+func foundationModelSession(
+  model: some LanguageModel,
+  configuration: FoundationModelSessionConfiguration
+) -> LanguageModelSession {
+  if configuration.history.isEmpty {
+    return LanguageModelSession(
+      model: model,
+      tools: configuration.tools,
+      instructions: configuration.instructions
+    )
+  }
+  return LanguageModelSession(
+    model: model,
+    tools: configuration.tools,
+    transcript: foundationModelTranscript(for: configuration)
+  )
+}
+
+@available(iOS 27.0, macOS 27.0, visionOS 27.0, *)
+private func foundationModelAttachmentPrompt(_ image: LMImage) throws -> Prompt {
+  switch image.source {
+  case let .url(url):
+    guard url.isFileURL else {
+      throw FoundationModelFailure(
+        reason: .unsupportedCapability,
+        debugDescription: "Foundation Models reads images from data or local files, not remote URLs."
+      )
+    }
+    return Prompt(Attachment(imageURL: url, orientation: nil))
+  case let .data(data, _):
+    guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil),
+          let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
+    else {
+      throw FoundationModelFailure(
+        reason: .invalidImage,
+        debugDescription: "The image data could not be decoded."
+      )
+    }
+    return Prompt(Attachment(cgImage))
+  }
+}
+
+@available(iOS 27.0, macOS 27.0, visionOS 27.0, *)
+extension FoundationModelClient {
+  /// A client backed by any Foundation Models `LanguageModel`, such as a Core AI or MLX model or a
+  /// third-party provider package.
+  ///
+  /// Every request runs on `model`. `executionTarget` describes the model for routing, privacy
+  /// metadata, and diagnostics: use `.customLocal` for on-device models and `.providerPackage` for
+  /// models that call a network service. `LanguageModel` does not report a context size, so pass
+  /// `contextWindowTokens` when you know it.
+  public static func live(
+    model: some LanguageModel,
+    executionTarget: FoundationModelExecutionTarget,
+    contextWindowTokens: Int? = nil
+  ) -> Self {
+    makeLive(
+      source: .languageModel(
+        model,
+        target: executionTarget,
+        contextWindowTokens: contextWindowTokens
+      ),
+      defaultExecutionTarget: executionTarget
+    )
+  }
+}
+
+@available(iOS 27.0, macOS 27.0, visionOS 27.0, *)
+extension FoundationModelSessionSource {
+  static func languageModel(
+    _ model: some LanguageModel,
+    target: FoundationModelExecutionTarget,
+    contextWindowTokens: Int?
+  ) -> Self {
+    @Sendable func accepts(_ requested: FoundationModelExecutionTarget) -> Bool {
+      requested == .automatic || requested == target
+    }
+
+    @Sendable func profile() -> FoundationModelRuntimeProfile {
+      var profile = FoundationModelRuntimeProfile(
+        executionTarget: target,
+        contextWindowTokens: contextWindowTokens,
+        quotaStatus: .notApplicable
+      )
+      profile.applyCapabilities(model.capabilities)
+      return profile
+    }
+
+    return Self(
+      availability: { requested, _, _ in
+        accepts(requested) ? .available : .unsupportedExecutionTarget(requested.diagnosticName)
+      },
+      countTokens: { request in
+        TokenCounter.latinHeuristic.count(request.text)
+      },
+      makeSession: { configuration in
+        guard accepts(configuration.target) else {
+          throw FoundationModelFailure(
+            reason: .unavailable(.unsupportedExecutionTarget(configuration.target.diagnosticName))
+          )
+        }
+        return FoundationModelSessionHandle(
+          session: foundationModelSession(model: model, configuration: configuration),
+          systemModel: nil
+        )
+      },
+      onDeviceAvailability: { _, _ in
+        .available
+      },
+      reportedRuntimeProfile: { _, _ in
+        profile()
+      },
+      runtimeProfile: { _, _ in
+        profile()
+      }
+    )
+  }
+}
+
 @available(iOS 27.0, macOS 27.0, visionOS 27.0, *)
 private func foundationModelPrivateCloudComputeAvailability(
   locale: Locale?
@@ -1020,7 +1418,7 @@ func foundationModelFailure(fromOS27Error error: any Error) -> FoundationModelFa
 }
 #endif
 
-private extension String {
+extension String {
   var nilIfEmpty: String? {
     isEmpty ? nil : self
   }

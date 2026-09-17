@@ -75,14 +75,16 @@ public enum FoundationModelExecutionTarget: Equatable, Hashable, Sendable {
     }
   }
 
-  /// Whether the live adapter can execute this target. Provider packages and custom local models
-  /// are descriptive today and need a future bridge before the live adapter can run them.
-  public var isSupportedByLiveAdapter: Bool {
+  /// Whether the target needs an app-supplied `LanguageModel`. `FoundationModelClient.live` runs
+  /// Apple's system models; provider packages and custom local models, such as Core AI or MLX
+  /// models, run through `FoundationModelClient.live(model:executionTarget:contextWindowTokens:)` on
+  /// the OS 27 releases.
+  public var requiresCustomLanguageModel: Bool {
     switch self {
     case .automatic, .onDevice, .privateCloudCompute:
-      return true
-    case .providerPackage, .customLocal:
       return false
+    case .providerPackage, .customLocal:
+      return true
     }
   }
 }
@@ -207,6 +209,9 @@ public struct FoundationModelRuntimeProfile: Equatable, Sendable {
     var capabilities = LMClientCapabilities.foundationModelsProviderNeutral
     if supportsReasoning {
       capabilities.supportedFeatures.insert(.reasoning)
+    }
+    if supportsVision {
+      capabilities.supportedFeatures.insert(.imageInput)
     }
     capabilities.contextWindowTokens = contextWindowTokens
     return capabilities

@@ -3,6 +3,8 @@ public enum LMCapability: String, CaseIterable, Codable, Equatable, Hashable, Se
   /// The provider honors `toolChoice` values that force a tool call (`required` or a named tool).
   case forcedToolChoice
   case guidedGeneration
+  /// The provider accepts images attached to user messages.
+  case imageInput
   case instructions
   case jsonObjectResponse
   case jsonSchemaResponse
@@ -49,6 +51,7 @@ public struct LMClientCapabilities: Equatable, Sendable {
   public static let deterministicLocal = Self(
     supportedFeatures: [
       .forcedToolChoice,
+      .imageInput,
       .instructions,
       .jsonObjectResponse,
       .jsonSchemaResponse,
@@ -87,6 +90,7 @@ public struct LMClientCapabilities: Equatable, Sendable {
   public static let openAIResponses = Self(
     supportedFeatures: [
       .forcedToolChoice,
+      .imageInput,
       .instructions,
       .jsonObjectResponse,
       .jsonSchemaResponse,
@@ -103,6 +107,7 @@ public struct LMClientCapabilities: Equatable, Sendable {
   public static let anthropicMessages = Self(
     supportedFeatures: [
       .forcedToolChoice,
+      .imageInput,
       .instructions,
       .jsonObjectResponse,
       .jsonSchemaResponse,
@@ -152,6 +157,10 @@ extension LMRequest {
 
     if messages.contains(where: { $0.role == .tool }) {
       capabilities.insert(.toolResults)
+    }
+
+    if messages.contains(where: { !$0.images.isEmpty }) {
+      capabilities.insert(.imageInput)
     }
 
     if parameters.temperature != nil {

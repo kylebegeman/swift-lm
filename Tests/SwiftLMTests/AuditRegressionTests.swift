@@ -249,7 +249,8 @@ struct FoundationModelRuntimeTests {
     #expect(privateCloud.metadata.modelIdentifier == "PrivateCloudComputeLanguageModel")
     #expect(await client.availability(for: .privateCloudCompute) == .available)
     #expect(await FoundationModelClient.unavailable.availability(for: .onDevice) == .unavailableInBuild)
-    #expect(FoundationModelExecutionTarget.customLocal("mlx").isSupportedByLiveAdapter == false)
+    #expect(FoundationModelExecutionTarget.customLocal("mlx").requiresCustomLanguageModel)
+    #expect(!FoundationModelExecutionTarget.privateCloudCompute.requiresCustomLanguageModel)
   }
 
   @Test

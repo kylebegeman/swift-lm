@@ -1,6 +1,8 @@
 // A stub of the OS 27 FoundationModels API surface used by SwiftLMFoundationModels, transcribed
 // from Apple's documentation. Only the declarations the adapter touches are present.
+import CoreGraphics
 import Foundation
+import ImageIO
 
 public protocol PromptRepresentable {}
 public protocol InstructionsRepresentable {}
@@ -14,6 +16,28 @@ extension String: Generable {}
 
 public struct Prompt: Sendable, PromptRepresentable {
   public init(_ content: some PromptRepresentable) {}
+  public init(@PromptBuilder _ content: () throws -> Prompt) rethrows {}
+  init(components: [any PromptRepresentable]) {}
+}
+
+extension Array: PromptRepresentable where Element: PromptRepresentable {}
+
+@resultBuilder
+public struct PromptBuilder {
+  public static func buildBlock(_ components: any PromptRepresentable...) -> Prompt {
+    Prompt(components: components)
+  }
+}
+
+public struct ImageAttachmentContent: Sendable, Equatable {}
+
+public struct Attachment<Content>: PromptRepresentable {
+  public init(_ content: Content) {}
+}
+
+extension Attachment where Content == ImageAttachmentContent {
+  public init(_ cgImage: CGImage, orientation: CGImagePropertyOrientation? = nil) {}
+  public init(imageURL: URL, orientation: CGImagePropertyOrientation?) {}
 }
 
 public struct Instructions: Sendable, InstructionsRepresentable {
@@ -24,6 +48,8 @@ public protocol Tool: Sendable {
   var name: String { get }
   var description: String { get }
 }
+
+public struct GenerationSchema: Sendable {}
 
 public struct LanguageModelCapabilities: Sendable {
   public struct Capability: Sendable, Hashable {
@@ -65,6 +91,7 @@ public final class SystemLanguageModel: LanguageModel, Sendable {
   public func tokenCount(for prompt: some PromptRepresentable) async throws -> Int { 0 }
   public func tokenCount(for instructions: Instructions) async throws -> Int { 0 }
   public func tokenCount(for tools: [any Tool]) async throws -> Int { 0 }
+  public func tokenCount(for transcriptEntries: some Collection<Transcript.Entry>) async throws -> Int { 0 }
 }
 
 public final class PrivateCloudComputeLanguageModel: LanguageModel, Sendable {
@@ -128,15 +155,50 @@ public struct ContextOptions: Sendable {
   public init(includeSchemaInPrompt: Bool?, reasoningLevel: ReasoningLevel?) {}
 }
 
-public struct Transcript: Sendable {
-  public struct TextSegment: Sendable { public var content: String }
+public struct Transcript: Sendable, RandomAccessCollection {
+  public struct TextSegment: Sendable {
+    public var id: String
+    public var content: String
+    public init(id: String = UUID().uuidString, content: String) {
+      self.id = id
+      self.content = content
+    }
+  }
   public struct StructuredSegment: Sendable {}
   public enum Segment: Sendable { case text(TextSegment), structure(StructuredSegment) }
+  public struct ToolDefinition: Sendable {
+    public init(tool: some Tool) {}
+  }
+  public struct ResponseFormat: Sendable {}
+  public struct Instructions: Sendable {
+    public var segments: [Segment]
+    public init(id: String = UUID().uuidString, segments: [Segment], toolDefinitions: [ToolDefinition]) {
+      self.segments = segments
+    }
+  }
+  public struct Prompt: Sendable {
+    public var segments: [Segment]
+    public init(id: String = UUID().uuidString, segments: [Segment], options: GenerationOptions = GenerationOptions(), responseFormat: ResponseFormat? = nil) {
+      self.segments = segments
+    }
+  }
+  public struct Response: Sendable {
+    public var segments: [Segment]
+    public init(id: String = UUID().uuidString, assetIDs: [String], segments: [Segment]) {
+      self.segments = segments
+    }
+  }
   public struct Reasoning: Sendable { public var segments: [Segment] }
   public struct Other: Sendable {}
   public enum Entry: Sendable {
-    case instructions(Other), prompt(Other), response(Other), reasoning(Reasoning), toolCalls(Other), toolOutput(Other), data(Other)
+    case instructions(Instructions), prompt(Prompt), response(Response), reasoning(Reasoning), toolCalls(Other), toolOutput(Other), data(Other)
   }
+
+  private var entries: [Entry]
+  public init(entries: some Sequence<Entry> = []) { self.entries = Array(entries) }
+  public var startIndex: Int { entries.startIndex }
+  public var endIndex: Int { entries.endIndex }
+  public subscript(position: Int) -> Entry { entries[position] }
 }
 
 public enum LanguageModelError: Swift.Error {
@@ -216,6 +278,9 @@ public final class LanguageModelSession: @unchecked Sendable {
   }
 
   public convenience init(model: some LanguageModel = SystemLanguageModel.default, tools: [any Tool] = [], instructions: String? = nil) { self.init() }
+  public convenience init(model: some LanguageModel = SystemLanguageModel.default, tools: [any Tool] = [], transcript: Transcript) { self.init() }
+  public var isResponding: Bool { false }
+  public var transcript: Transcript { Transcript() }
   public init() {}
   public func prewarm(promptPrefix: Prompt?) {}
   public func respond(to prompt: Prompt, options: GenerationOptions = GenerationOptions()) async throws -> Response<String> { Response(content: "") }

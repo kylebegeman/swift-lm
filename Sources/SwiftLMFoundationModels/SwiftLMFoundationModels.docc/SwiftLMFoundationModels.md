@@ -13,6 +13,9 @@ Use this product to:
 - prewarm Foundation Models sessions where available
 - count tokens with the system tokenizer when possible
 - generate and stream strings, and generate guided typed outputs
+- keep multi-turn conversations in a reusable session
+- attach images for models that accept them
+- run Core AI, MLX, and provider-package language models through the same adapter
 - ask for reasoning levels on targets that support them
 - pass native Foundation Models `Tool` values through the typed adapter API
 - call Foundation Models through the shared `LMClient` protocol
@@ -30,6 +33,11 @@ Use this product to:
 - ``FoundationModelGenerationOptions``
 - ``FoundationModelToolCallingMode``
 - ``FoundationModelStreamEvent``
+- ``FoundationModelTranscriptTurn``
+
+### Sessions
+
+- ``FoundationModelSession``
 
 ### Execution Targets
 

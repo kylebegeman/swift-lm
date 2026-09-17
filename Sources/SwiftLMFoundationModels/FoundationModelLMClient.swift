@@ -50,6 +50,7 @@ extension FoundationModelClient: LMClient {
 
   private func generationRequest(for request: LMRequest) throws -> FoundationModelGenerationRequest {
     try Self.validateSupportedFeatures(for: request)
+    let conversation = try FoundationModelConversation(messages: request.messages)
 
     let profile = runtimeProfile()
     if request.parameters.reasoningEffort != nil, !profile.supportsReasoning {
@@ -57,6 +58,20 @@ extension FoundationModelClient: LMClient {
         reason: .unsupported,
         debugDescription: "\(profile.modelIdentifier) does not support reasoning. Leave reasoningEffort nil or target Private Cloud Compute."
       )
+    }
+    if !conversation.images.isEmpty {
+      guard profile.supportsVision else {
+        throw LMClientError(
+          reason: .unsupported,
+          debugDescription: "\(profile.modelIdentifier) does not accept images."
+        )
+      }
+      if conversation.images.contains(where: { $0.remoteURL != nil }) {
+        throw LMClientError(
+          reason: .unsupported,
+          debugDescription: "Foundation Models reads images from data or local files, not remote URLs."
+        )
+      }
     }
 
     let responseMetadata = metadata(for: request)
@@ -69,7 +84,7 @@ extension FoundationModelClient: LMClient {
       ),
       contextPlan: request.contextPlan,
       metadata: responseMetadata,
-      userPrompt: request.messages.foundationUserPrompt
+      userPrompt: conversation.prompt
     )
     return FoundationModelGenerationRequest(
       prompt: prompt,
@@ -81,7 +96,9 @@ extension FoundationModelClient: LMClient {
         executionTarget: defaultExecutionTarget,
         reasoningEffort: request.parameters.reasoningEffort
       ),
-      useCase: defaultUseCase
+      useCase: defaultUseCase,
+      history: conversation.history,
+      images: conversation.images
     )
   }
 
@@ -144,22 +161,50 @@ extension FoundationModelClient: LMClient {
   }
 }
 
-private extension Array where Element == LMMessage {
-  var foundationUserPrompt: String {
-    filter { $0.role != .system && $0.role != .developer }
-      .map { message in
-        switch message.role {
-        case .assistant:
-          return "Assistant:\n\(message.content)"
-        case .tool:
-          return "Tool result\(message.toolCallID.map { " \($0)" } ?? ""):\n\(message.content)"
-        case .user:
-          return message.content
-        case .developer, .system:
-          return message.content
-        }
+/// Maps provider-neutral messages onto a Foundation Models transcript. Earlier user and assistant
+/// messages become history turns, and the trailing user messages become the prompt.
+struct FoundationModelConversation: Equatable {
+  var history: [FoundationModelTranscriptTurn]
+  var images: [LMImage]
+  var prompt: String
+
+  init(messages: [LMMessage]) throws {
+    let turns = messages.filter { $0.role == .user || $0.role == .assistant }
+    guard let last = turns.last else {
+      throw LMClientError(
+        reason: .badRequest,
+        debugDescription: "Foundation Models requests need at least one user message."
+      )
+    }
+    guard last.role == .user else {
+      throw LMClientError(
+        reason: .unsupported,
+        debugDescription: "Foundation Models requests must end with a user message. Assistant prefill is not supported."
+      )
+    }
+
+    let promptStart = turns.lastIndex { $0.role != .user }.map { $0 + 1 } ?? 0
+    let promptMessages = turns[promptStart...]
+    self.prompt = promptMessages.map(\.content).filter { !$0.isEmpty }.joined(separator: "\n\n")
+    self.images = promptMessages.flatMap(\.images)
+
+    var history: [FoundationModelTranscriptTurn] = []
+    for message in turns[..<promptStart] {
+      guard message.images.isEmpty else {
+        throw LMClientError(
+          reason: .unsupported,
+          debugDescription: "Foundation Models accepts images only in the latest user message."
+        )
       }
-      .joined(separator: "\n\n")
+      guard !message.content.isEmpty else { continue }
+      let role: FoundationModelTranscriptTurn.Role = message.role == .user ? .prompt : .response
+      if let lastTurn = history.last, lastTurn.role == role {
+        history[history.count - 1].text += "\n\n" + message.content
+      } else {
+        history.append(FoundationModelTranscriptTurn(role: role, text: message.content))
+      }
+    }
+    self.history = history
   }
 }
 

@@ -142,14 +142,24 @@ Implemented in 2.0:
 - Provider-native content replay (`LMProviderContent`) so reasoning items and thinking blocks survive tool loops.
 - Endpoint registry and routing plans with explicit fallbacks, and run receipts for streaming routes.
 - A showcase panel for Private Cloud Compute availability, context window, reasoning support, and quota.
+- Multi-turn transcripts for provider-neutral requests, and `FoundationModelSession` for reusable conversations.
+- Image attachments for models that report the vision capability.
+- `FoundationModelClient.live(model:executionTarget:contextWindowTokens:)` for Core AI, MLX, and provider-package `LanguageModel` values.
+- Verification on GitHub's `xcode-27` image: a strict build, the full test suite on macOS 27, and the showcase build for the iOS 27 simulator.
 
 Still planned:
 
-- Verify the gated code with Xcode 27. The 2.0 implementation follows Apple's documented declarations and compiles against a stub of them, not against the OS 27 SDK.
-- Dynamic Profiles, session reuse, transcript compaction, context snapshots, and cache-aware diagnostics.
-- Transcript error policy types.
-- A `LanguageModel` provider bridge, Core AI and MLX descriptors, image attachments, and watchOS 27 support.
+- Run a Private Cloud Compute feature on a device with the managed entitlement.
+- Transcript compaction, context snapshots, cache-aware diagnostics, and transcript error policy types.
+- Images in earlier conversation turns, and tool calls in provider-neutral Foundation Models history.
+- Private Cloud Compute on Apple Watch.
 - Evaluations framework alignment.
+
+Decisions:
+
+- The package minimum stays at the OS 26 releases. OS 27 features are gated, so raising the minimum would drop OS 26 devices without adding capability.
+- Dynamic Profiles are not wrapped. Apps use Apple's API directly or compose `LMWorkflow` steps across clients.
+- SwiftLM consumes `LanguageModel` providers instead of publishing its OpenAI and Anthropic clients as providers, because the vendors ship their own Foundation Models packages.
 
 ## Non-Goals
 

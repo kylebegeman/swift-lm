@@ -21,8 +21,10 @@ Use this card for availability, locale support, guided generation, tool calling,
 - `FoundationModelClient` (closures for availability, target availability, runtime profile, token counting, prewarm, respond, and stream)
 - `FoundationModelDefaults`
 - `FoundationModelGenerationOptions` and `FoundationModelToolCallingMode`
-- `FoundationModelGenerationRequest`
+- `FoundationModelGenerationRequest` and `FoundationModelTranscriptTurn`
 - `FoundationModelGenerationResponse` and `FoundationModelStreamEvent`
+- `FoundationModelSession`, a reusable conversation
+- `FoundationModelClient.live(model:executionTarget:contextWindowTokens:)` for custom `LanguageModel` values (OS 27)
 - `FoundationModelExecutionTarget`
 - `FoundationModelRuntimeProfile`
 - `FoundationModelQuotaStatus`
@@ -37,7 +39,9 @@ generation, streaming, guided generation and native tool calls where `Foundation
 importable, context-plan budgeting, error normalization for both the OS 26 and OS 27 error
 generations, and Private Cloud Compute execution with quota and reasoning mapping. OS 27 symbols
 sit behind `#if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY` in `FoundationModelLive.swift`.
-Dynamic Profiles, session reuse, and the provider bridge are future work.
+Stateless requests and `FoundationModelSession` share one session-source path in
+`FoundationModelLive.swift`, which also backs custom `LanguageModel` clients. Dynamic Profiles are
+intentionally not wrapped.
 
 ## Source Of Truth
 

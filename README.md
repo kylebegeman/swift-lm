@@ -125,6 +125,22 @@ if availability.isAvailable, profile.quotaStatus.permitsGeneration {
 }
 ```
 
+Keep a conversation on one session so the model reuses its context:
+
+```swift
+let session = try await FoundationModelSession(instructions: "Help plan the trip.")
+_ = try await session.respond(to: "What should I pack for Lisbon?")
+let followUp = try await session.respond(to: "And for a day trip to Sintra?")
+```
+
+Attach images to user messages. Each adapter sends them in its provider's format, and routers skip clients that cannot read them:
+
+```swift
+let request = LMRequest(
+  messages: [.user("Summarize this receipt.", images: [.data(receiptPNG, mediaType: "image/png")])]
+)
+```
+
 Route across local and explicitly configured provider-backed clients:
 
 ```swift
@@ -296,8 +312,11 @@ SwiftLM 2.0 adopts the OS 27 Foundation Models framework:
 - quota status mapped to `FoundationModelQuotaStatus` and `FallbackReason.quotaExceeded`, so a router can fall back to the on-device model when a daily limit is reached
 - tool calling modes, usage reporting, and the OS 27 error taxonomy
 - native streaming on every supported release
+- multi-turn transcripts, and `FoundationModelSession` for conversations that keep their key-value cache and tools
+- image attachments for models that accept images
+- any `LanguageModel`, such as Core AI, MLX, or a vendor's provider package, through `FoundationModelClient.live(model:executionTarget:contextWindowTokens:)`
 
-Still ahead: Dynamic Profiles, session reuse, the `LanguageModel` provider bridge for Core AI, MLX, and third-party packages, image attachments, watchOS 27, and Evaluations framework alignment. See [Roadmap](docs/09-roadmap.md) and [WWDC26 Readiness](docs/14-wwdc26-readiness.md).
+Still ahead: transcript compaction, Private Cloud Compute on Apple Watch, and Evaluations framework alignment. Dynamic Profiles stay with Apple's API. See [Roadmap](docs/09-roadmap.md) and [WWDC26 Readiness](docs/14-wwdc26-readiness.md).
 
 ```mermaid
 flowchart LR

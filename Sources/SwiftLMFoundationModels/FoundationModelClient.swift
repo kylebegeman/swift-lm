@@ -40,6 +40,9 @@ public struct FoundationModelClient: Sendable {
   public var respond: @Sendable (FoundationModelGenerationRequest) async throws
     -> FoundationModelGenerationResponse<String>
   public var streamResponse: StreamHandler
+  /// The live session source behind the typed Foundation Models APIs. `nil` means Apple's system
+  /// models. It is type-erased so this file compiles without the framework.
+  var sessionSource: FoundationModelSessionSourceBox?
 
   public init(
     checkAvailability: @escaping AvailabilityCheck,
@@ -145,40 +148,17 @@ public struct FoundationModelClient: Sendable {
     }
   )
 
+  /// A client for Apple's system models: the on-device model and, on the OS 27 releases, Private
+  /// Cloud Compute.
   public static let live: Self = {
     #if canImport(FoundationModels)
-    Self(
-      checkAvailability: { locale, useCase in
-        foundationModelAvailability(locale: locale, useCase: useCase)
-      },
-      countTokens: { request in
-        try await foundationModelTokenCount(for: request)
-      },
-      prewarm: { request in
-        try await foundationModelPrewarm(for: request)
-      },
-      respond: { request in
-        try await foundationModelStringResponse(for: request)
-      },
-      checkExecutionTargetAvailability: { target, locale, useCase in
-        await foundationModelAvailability(target: target, locale: locale, useCase: useCase)
-      },
-      resolveRuntimeProfile: { target, useCase in
-        foundationModelRuntimeProfile(target: target, useCase: useCase)
-      },
-      resolveReportedRuntimeProfile: { target, useCase in
-        await foundationModelReportedRuntimeProfile(target: target, useCase: useCase)
-      },
-      streamResponse: { request in
-        foundationModelStream(for: request)
-      }
-    )
+    Self.makeLive(source: .system)
     #else
     Self.unavailable
     #endif
   }()
 
-  private static func derivedStream(
+  static func derivedStream(
     for request: FoundationModelGenerationRequest,
     respond: @escaping @Sendable (FoundationModelGenerationRequest) async throws
       -> FoundationModelGenerationResponse<String>
@@ -199,4 +179,9 @@ public struct FoundationModelClient: Sendable {
       }
     }
   }
+}
+
+/// Type-erased storage for a live session source, so the framework-independent client can carry it.
+struct FoundationModelSessionSourceBox: Sendable {
+  var value: any Sendable
 }

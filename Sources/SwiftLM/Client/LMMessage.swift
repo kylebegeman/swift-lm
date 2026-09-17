@@ -31,6 +31,8 @@ public struct LMProviderContent: Codable, Equatable, Sendable {
 /// provider's transport shape.
 public struct LMMessage: Codable, Equatable, Sendable {
   public var content: String
+  /// Images that accompany a user message. Other roles cannot carry images.
+  public var images: [LMImage]
   public var name: String?
   /// Provider-native content to replay verbatim, such as reasoning items or thinking blocks.
   public var providerContent: LMProviderContent?
@@ -42,6 +44,7 @@ public struct LMMessage: Codable, Equatable, Sendable {
   public init(
     role: LMMessageRole,
     content: String,
+    images: [LMImage] = [],
     name: String? = nil,
     toolCallID: String? = nil,
     toolCalls: [LMToolCall] = [],
@@ -49,6 +52,7 @@ public struct LMMessage: Codable, Equatable, Sendable {
     providerContent: LMProviderContent? = nil
   ) {
     self.content = content
+    self.images = images
     self.name = name
     self.providerContent = providerContent
     self.role = role
@@ -86,13 +90,14 @@ public struct LMMessage: Codable, Equatable, Sendable {
     )
   }
 
-  public static func user(_ content: String) -> Self {
-    Self(role: .user, content: content)
+  public static func user(_ content: String, images: [LMImage] = []) -> Self {
+    Self(role: .user, content: content, images: images)
   }
 
   // Keep default tool fields optional on the wire so older persisted messages remain decodable.
   enum CodingKeys: String, CodingKey {
     case content
+    case images
     case name
     case providerContent
     case role
@@ -104,6 +109,7 @@ public struct LMMessage: Codable, Equatable, Sendable {
   public init(from decoder: any Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     self.content = try container.decode(String.self, forKey: .content)
+    self.images = try container.decodeIfPresent([LMImage].self, forKey: .images) ?? []
     self.name = try container.decodeIfPresent(String.self, forKey: .name)
     self.providerContent = try container.decodeIfPresent(LMProviderContent.self, forKey: .providerContent)
     self.role = try container.decode(LMMessageRole.self, forKey: .role)
@@ -115,6 +121,9 @@ public struct LMMessage: Codable, Equatable, Sendable {
   public func encode(to encoder: any Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
     try container.encode(content, forKey: .content)
+    if !images.isEmpty {
+      try container.encode(images, forKey: .images)
+    }
     try container.encodeIfPresent(name, forKey: .name)
     try container.encodeIfPresent(providerContent, forKey: .providerContent)
     try container.encode(role, forKey: .role)
