@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="454" viewBox="0 0 1040 454" role="img" aria-label="Prompt evaluation for meeting-actions: version 2026-09-02 passes 1 of 3, version 2026-09-17 passes 3 of 3.">
+  <title>Prompt evaluation for meeting-actions: version 2026-09-02 passes 1 of 3, version 2026-09-17 passes 3 of 3.</title>
+  <defs>
+    <filter id="shadow" x="-8%" y="-8%" width="116%" height="124%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.13"/></filter>
+  </defs>
+  <rect x="24" y="18" width="992" height="402" rx="16" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="24.5" y="18.5" width="991" height="401" rx="15.5" fill="none" stroke="#E3E0DD" stroke-width="1"/>
+  <text x="58" y="62" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" xml:space="preserve"><tspan fill="#1C1917" font-weight="600">meeting-actions</tspan><tspan fill="#78716C">  two prompt versions, three cases</tspan></text>
+  <text x="58" y="86" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#78716C">PromptEvaluator runs the same cases against each version and keeps the failure messages.</text>
+  <line x1="58" y1="118" x2="982" y2="118" stroke="#E3E0DD" stroke-width="1"/>
+  <text x="58" y="145" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="600" fill="#78716C" letter-spacing="0.6">CASE</text>
+  <text x="374" y="145" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" font-weight="600" fill="#1C1917">2026-09-02</text>
+  <rect x="464" y="130" width="97" height="22" rx="11" fill="#FEE2E2"/>
+  <text x="512.5" y="145.14" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="600" text-anchor="middle" fill="#B91C1C">1 of 3 passed</text>
+  <text x="694" y="145" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" font-weight="600" fill="#1C1917">2026-09-17</text>
+  <rect x="784" y="130" width="97" height="22" rx="11" fill="#DCFCE7"/>
+  <text x="832.5" y="145.14" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="600" text-anchor="middle" fill="#15803D">3 of 3 passed</text>
+  <line x1="58" y1="162" x2="982" y2="162" stroke="#E3E0DD" stroke-width="1"/>
+  <text x="58" y="190" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" font-weight="600" fill="#1C1917">keeps-owners</text>
+  <text x="58" y="211" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" fill="#78716C">Requires Maya and Friday</text>
+  <circle cx="383" cy="186" r="8.5" fill="#DCFCE7"/>
+  <path d="M 379.4 186.2 l 2.4 2.4 l 4.8 -4.8" fill="none" stroke="#15803D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="402" y="190.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#15803D">Passed</text>
+  <circle cx="703" cy="186" r="8.5" fill="#DCFCE7"/>
+  <path d="M 699.4 186.2 l 2.4 2.4 l 4.8 -4.8" fill="none" stroke="#15803D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="722" y="190.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#15803D">Passed</text>
+  <line x1="58" y1="232" x2="982" y2="232" stroke="#E3E0DD" stroke-width="1"/>
+  <text x="58" y="260" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" font-weight="600" fill="#1C1917">no-invented-dates</text>
+  <text x="58" y="281" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" fill="#78716C">Forbids Monday and Friday</text>
+  <circle cx="383" cy="256" r="8.5" fill="#FEE2E2"/>
+  <path d="M 380 253 l 6 6 M 386 253 l -6 6" fill="none" stroke="#B91C1C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="402" y="260.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#3F3A36">Included forbidden substring: Monday</text>
+  <circle cx="703" cy="256" r="8.5" fill="#DCFCE7"/>
+  <path d="M 699.4 256.2 l 2.4 2.4 l 4.8 -4.8" fill="none" stroke="#15803D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="722" y="260.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#15803D">Passed</text>
+  <line x1="58" y1="302" x2="982" y2="302" stroke="#E3E0DD" stroke-width="1"/>
+  <text x="58" y="330" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" font-weight="600" fill="#1C1917">stays-short</text>
+  <text x="58" y="351" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" fill="#78716C">At most 420 characters</text>
+  <circle cx="383" cy="326" r="8.5" fill="#FEE2E2"/>
+  <path d="M 380 323 l 6 6 M 386 323 l -6 6" fill="none" stroke="#B91C1C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="402" y="330.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#3F3A36">Expected at most 420 characters but</text>
+  <text x="402" y="349.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#3F3A36">received 422.</text>
+  <circle cx="703" cy="326" r="8.5" fill="#DCFCE7"/>
+  <path d="M 699.4 326.2 l 2.4 2.4 l 4.8 -4.8" fill="none" stroke="#15803D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="722" y="330.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#15803D">Passed</text>
+  <line x1="58" y1="372" x2="982" y2="372" stroke="#E3E0DD" stroke-width="1"/>
+  <text x="58" y="398" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" fill="#78716C">Reports keep case IDs, results, and failure messages. Model outputs stay out unless you opt in.</text>
+</svg>

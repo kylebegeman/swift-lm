@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="332" viewBox="0 0 1040 332" role="img" aria-label="How SwiftLM runs a feature: Describe, a versioned contract says what the feature asks; Fit, sources are packed into the model's token budget; Route, the first model that can honor the request answers; Check, output is checked against the sources; Record, a redacted receipt says what ran and why; then evaluation cases replay the feature when a prompt or a model changes.">
+  <title>How SwiftLM runs a feature: Describe, a versioned contract says what the feature asks; Fit, sources are packed into the model's token budget; Route, the first model that can honor the request answers; Check, output is checked against the sources; Record, a redacted receipt says what ran and why; then evaluation cases replay the feature when a prompt or a model changes.</title>
+  <defs>
+    <filter id="shadow" x="-8%" y="-8%" width="116%" height="124%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#71717A"/></marker>
+  </defs>
+  <rect x="24" y="18" width="992" height="280" rx="16" fill="#15171C" filter="url(#shadow)"/>
+  <rect x="24.5" y="18.5" width="991" height="279" rx="15.5" fill="none" stroke="#2B2F37" stroke-width="1"/>
+  <circle cx="75" cy="69" r="17" fill="#3C2C21"/>
+  <text x="75" y="74.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" text-anchor="middle" fill="#FB923C">1</text>
+  <rect x="102" y="52" width="34" height="34" rx="9" fill="none" stroke="#FB923C" stroke-width="1.6"/>
+  <g transform="translate(107 57) scale(1)"><path d="M6.5 3h8l4 4v14h-12z" fill="none" stroke="#FB923C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 3v4h4" fill="none" stroke="#FB923C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 12h6" fill="none" stroke="#FB923C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 16h6" fill="none" stroke="#FB923C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="58" y="126" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">Describe</text>
+  <text x="58" y="152" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">A versioned contract</text>
+  <text x="58" y="172.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">says what the feature</text>
+  <text x="58" y="193" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">asks.</text>
+  <g><rect x="58" y="214.5" width="112.6" height="21.5" rx="6" fill="#23272E"/><text x="66" y="230" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11.5" fill="#E4E4E7">PromptContract</text></g>
+  <line x1="152" y1="69" x2="234.8" y2="69" stroke="#71717A" stroke-width="1.6" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <circle cx="265.8" cy="69" r="17" fill="#193334"/>
+  <text x="265.8" y="74.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" text-anchor="middle" fill="#2DD4BF">2</text>
+  <rect x="292.8" y="52" width="34" height="34" rx="9" fill="none" stroke="#2DD4BF" stroke-width="1.6"/>
+  <g transform="translate(297.8 57) scale(1)"><path d="M3.5 5h17l-6.5 7.5v5.5l-4 2.5v-8z" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="248.8" y="126" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">Fit</text>
+  <text x="248.8" y="152" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">Sources are packed into</text>
+  <text x="248.8" y="172.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">the model's token</text>
+  <text x="248.8" y="193" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">budget.</text>
+  <g><rect x="248.8" y="214.5" width="133.3" height="21.5" rx="6" fill="#23272E"/><text x="256.8" y="230" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11.5" fill="#E4E4E7">LMContextCompiler</text></g>
+  <line x1="342.8" y1="69" x2="425.6" y2="69" stroke="#71717A" stroke-width="1.6" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <circle cx="456.6" cy="69" r="17" fill="#312D46"/>
+  <text x="456.6" y="74.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" text-anchor="middle" fill="#A78BFA">3</text>
+  <rect x="483.6" y="52" width="34" height="34" rx="9" fill="none" stroke="#A78BFA" stroke-width="1.6"/>
+  <g transform="translate(488.6 57) scale(1)"><path d="M7 12h3.5" fill="none" stroke="#A78BFA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 12c3.5 0 3-6 6.5-6" fill="none" stroke="#A78BFA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 12h6.5" fill="none" stroke="#A78BFA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 12c3.5 0 3 6 6.5 6" fill="none" stroke="#A78BFA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="4.8" cy="12" r="2.3" fill="#A78BFA"/><circle cx="19.2" cy="6" r="1.9" fill="#A78BFA"/><circle cx="19.2" cy="12" r="1.9" fill="#A78BFA"/><circle cx="19.2" cy="18" r="1.9" fill="#A78BFA"/></g>
+  <text x="439.6" y="126" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">Route</text>
+  <text x="439.6" y="152" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">The first model that can</text>
+  <text x="439.6" y="172.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">honor the request</text>
+  <text x="439.6" y="193" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">answers.</text>
+  <g><rect x="439.6" y="214.5" width="71.2" height="21.5" rx="6" fill="#23272E"/><text x="447.6" y="230" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11.5" fill="#E4E4E7">LMRouter</text></g>
+  <line x1="533.6" y1="69" x2="616.4" y2="69" stroke="#71717A" stroke-width="1.6" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <circle cx="647.4" cy="69" r="17" fill="#1C332A"/>
+  <text x="647.4" y="74.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" text-anchor="middle" fill="#4ADE80">4</text>
+  <rect x="674.4" y="52" width="34" height="34" rx="9" fill="none" stroke="#4ADE80" stroke-width="1.6"/>
+  <g transform="translate(679.4 57) scale(1)"><path d="M12 3l7 3v5.5c0 4.5-3 7.8-7 9.5-4-1.7-7-5-7-9.5V6z" fill="none" stroke="#4ADE80" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 12l2.2 2.2 4-4.4" fill="none" stroke="#4ADE80" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="630.4" y="126" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">Check</text>
+  <text x="630.4" y="152" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">Output is checked</text>
+  <text x="630.4" y="172.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">against the sources.</text>
+  <g><rect x="630.4" y="214.5" width="140.2" height="21.5" rx="6" fill="#23272E"/><text x="638.4" y="230" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11.5" fill="#E4E4E7">GroundingValidator</text></g>
+  <line x1="724.4" y1="69" x2="807.2" y2="69" stroke="#71717A" stroke-width="1.6" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <circle cx="838.2" cy="69" r="17" fill="#233144"/>
+  <text x="838.2" y="74.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" text-anchor="middle" fill="#60A5FA">5</text>
+  <rect x="865.2" y="52" width="34" height="34" rx="9" fill="none" stroke="#60A5FA" stroke-width="1.6"/>
+  <g transform="translate(870.2 57) scale(1)"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4z" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 8h6" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 11.5h6" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 15h3.5" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="821.2" y="126" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">Record</text>
+  <text x="821.2" y="152" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">A redacted receipt says</text>
+  <text x="821.2" y="172.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#A1A1AA">what ran and why.</text>
+  <g><rect x="821.2" y="214.5" width="98.8" height="21.5" rx="6" fill="#23272E"/><text x="829.2" y="230" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11.5" fill="#E4E4E7">LMRunReceipt</text></g>
+  <line x1="58" y1="269" x2="263.93" y2="269" stroke="#2B2F37" stroke-width="1.4" stroke-dasharray="5 6"/>
+  <line x1="776.07" y1="269" x2="982" y2="269" stroke="#2B2F37" stroke-width="1.4" stroke-dasharray="5 6"/>
+  <text x="520" y="274" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" text-anchor="middle" fill="#A1A1AA">then evaluation cases replay the feature when a prompt or a model changes</text>
+</svg>

@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="612" viewBox="0 0 1040 612" role="img" aria-label="Swift code that routes one request from the on-device model to Private Cloud Compute to Claude, beside the run receipt it produced: the on-device model was skipped because the request needs reasoning, Private Cloud Compute failed with quotaExceeded, and Anthropic answered.">
+  <title>Swift code that routes one request from the on-device model to Private Cloud Compute to Claude, beside the run receipt it produced: the on-device model was skipped because the request needs reasoning, Private Cloud Compute failed with quotaExceeded, and Anthropic answered.</title>
+  <defs>
+    <filter id="shadow" x="-8%" y="-8%" width="116%" height="124%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/></filter>
+    <clipPath id="window"><rect x="24" y="18" width="992" height="554" rx="12"/></clipPath>
+  </defs>
+  <rect x="24" y="18" width="992" height="554" rx="12" fill="#15171C" filter="url(#shadow)"/>
+  <path d="M 24 54 L 24 30 Q 24 18 36 18 L 1004 18 Q 1016 18 1016 30 L 1016 54 Z" fill="#1B1E24"/>
+  <line x1="24" y1="54" x2="1016" y2="54" stroke="#2B2F37" stroke-width="1"/>
+  <circle cx="44" cy="36" r="5.5" fill="#3A3F48"/>
+  <circle cx="62" cy="36" r="5.5" fill="#3A3F48"/>
+  <circle cx="80" cy="36" r="5.5" fill="#3A3F48"/>
+  <g clip-path="url(#window)"><rect x="564" y="54" width="452" height="518" fill="#181B20"/></g>
+  <line x1="24" y1="96" x2="1016" y2="96" stroke="#2B2F37" stroke-width="1"/>
+  <line x1="564" y1="54" x2="564" y2="572" stroke="#2B2F37" stroke-width="1"/>
+  <rect x="42" y="69" width="12" height="12" rx="3" fill="#FB923C"/>
+  <path d="M 45 78 l 3 -6 l 3 6" fill="none" stroke="#15171C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="62" y="79.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#F4F4F5">MeetingActions.swift</text>
+  <rect x="36" y="94" width="172.8" height="2" fill="#FB923C"/>
+  <text x="584" y="79.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#F4F4F5">Run receipt</text>
+  <rect x="914" y="64" width="84" height="22" rx="11" fill="#1C332A"/>
+  <text x="956" y="79.14" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="600" text-anchor="middle" fill="#4ADE80">Succeeded</text>
+  <text x="904" y="79.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" text-anchor="end" fill="#A1A1AA">3 attempts</text>
+  <text x="66" y="128" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">1</text>
+  <text x="82" y="128" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#FC5FA3" font-weight="600">import</tspan><tspan fill="#E4E4E7"> </tspan><tspan fill="#D0A8FF">SwiftLM</tspan></text>
+  <text x="66" y="148" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">2</text>
+  <text x="82" y="148" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#FC5FA3" font-weight="600">import</tspan><tspan fill="#E4E4E7"> </tspan><tspan fill="#D0A8FF">SwiftLMAnthropic</tspan></text>
+  <text x="66" y="168" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">3</text>
+  <text x="82" y="168" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#FC5FA3" font-weight="600">import</tspan><tspan fill="#E4E4E7"> </tspan><tspan fill="#D0A8FF">SwiftLMFoundationModels</tspan></text>
+  <text x="66" y="188" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">4</text>
+  <text x="66" y="208" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">5</text>
+  <text x="82" y="208" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#FC5FA3" font-weight="600">let</tspan><tspan fill="#E4E4E7"> apple = </tspan><tspan fill="#D0A8FF">FoundationModelClient</tspan><tspan fill="#E4E4E7">.</tspan><tspan fill="#A167E6">live</tspan></text>
+  <text x="66" y="228" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">6</text>
+  <text x="66" y="248" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">7</text>
+  <text x="82" y="248" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#FC5FA3" font-weight="600">let</tspan><tspan fill="#E4E4E7"> router = </tspan><tspan fill="#D0A8FF">LMRouter</tspan><tspan fill="#E4E4E7">(</tspan></text>
+  <text x="66" y="268" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">8</text>
+  <text x="82" y="268" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">  primary: </tspan><tspan fill="#D0A8FF">AnyLMClient</tspan><tspan fill="#E4E4E7">(apple),</tspan></text>
+  <text x="66" y="288" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">9</text>
+  <text x="82" y="288" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">  fallbacks: [</tspan></text>
+  <text x="66" y="308" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">10</text>
+  <text x="82" y="308" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">    </tspan><tspan fill="#D0A8FF">AnyLMClient</tspan><tspan fill="#E4E4E7">(apple.</tspan><tspan fill="#A167E6">targeting</tspan><tspan fill="#E4E4E7">(.</tspan><tspan fill="#A167E6">privateCloudCompute</tspan><tspan fill="#E4E4E7">)),</tspan></text>
+  <text x="66" y="328" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">11</text>
+  <text x="82" y="328" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">    .</tspan><tspan fill="#A167E6">anthropic</tspan><tspan fill="#E4E4E7">(apiKey: key, model: </tspan><tspan fill="#FC6A5D">&quot;claude-sonnet-5&quot;</tspan><tspan fill="#E4E4E7">),</tspan></text>
+  <text x="66" y="348" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">12</text>
+  <text x="82" y="348" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">  ]</tspan></text>
+  <text x="66" y="368" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">13</text>
+  <text x="82" y="368" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">)</tspan></text>
+  <text x="66" y="388" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">14</text>
+  <text x="66" y="408" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">15</text>
+  <text x="82" y="408" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#FC5FA3" font-weight="600">let</tspan><tspan fill="#E4E4E7"> run = </tspan><tspan fill="#FC5FA3" font-weight="600">try</tspan><tspan fill="#E4E4E7"> </tspan><tspan fill="#FC5FA3" font-weight="600">await</tspan><tspan fill="#E4E4E7"> router.</tspan><tspan fill="#A167E6">respondWithReceipt</tspan><tspan fill="#E4E4E7">(</tspan></text>
+  <text x="66" y="428" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">16</text>
+  <text x="82" y="428" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">  to: </tspan><tspan fill="#D0A8FF">LMRequest</tspan><tspan fill="#E4E4E7">(</tspan></text>
+  <text x="66" y="448" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">17</text>
+  <text x="82" y="448" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">    instructions: </tspan><tspan fill="#FC6A5D">&quot;List the decisions and owners.&quot;</tspan><tspan fill="#E4E4E7">,</tspan></text>
+  <text x="66" y="468" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">18</text>
+  <text x="82" y="468" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">    messages: [.</tspan><tspan fill="#A167E6">user</tspan><tspan fill="#E4E4E7">(meetingNote)],</tspan></text>
+  <text x="66" y="488" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">19</text>
+  <text x="82" y="488" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">    responseFormat: .</tspan><tspan fill="#A167E6">jsonObject</tspan><tspan fill="#E4E4E7">,</tspan></text>
+  <text x="66" y="508" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">20</text>
+  <text x="82" y="508" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">    parameters: .</tspan><tspan fill="#FC5FA3" font-weight="600">init</tspan><tspan fill="#E4E4E7">(reasoningEffort: .</tspan><tspan fill="#A167E6">medium</tspan><tspan fill="#E4E4E7">)</tspan></text>
+  <text x="66" y="528" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">21</text>
+  <text x="82" y="528" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">  )</tspan></text>
+  <text x="66" y="548" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" text-anchor="end" fill="#4E535C">22</text>
+  <text x="82" y="548" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" xml:space="preserve"><tspan fill="#E4E4E7">)</tspan></text>
+  <rect x="584" y="114" width="412" height="92" rx="12" fill="#15171C" stroke="#2B2F37" stroke-width="1"/>
+  <circle cx="610" cy="144" r="13" fill="#262A31"/>
+  <text x="610" y="148.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" text-anchor="middle" fill="#D4D4D8">1</text>
+  <text x="634" y="142" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#F4F4F5">On-device model</text>
+  <text x="634" y="160" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11.5" fill="#A1A1AA">SystemLanguageModel.default</text>
+  <rect x="915" y="130" width="67" height="22" rx="11" fill="#38301D"/>
+  <text x="948.5" y="145.14" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="600" text-anchor="middle" fill="#FBBF24">Skipped</text>
+  <text x="600" y="190" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#D4D4D8">The request needs</text>
+  <g><rect x="717.2" y="174" width="80.8" height="22" rx="6" fill="#23272E"/><text x="725.2" y="190" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#E4E4E7">reasoning</text></g>
+  <g><rect x="906.6" y="175" width="75.4" height="21" rx="6" fill="#23272E"/><text x="914.6" y="190" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11" fill="#A1A1AA">localOnly</text></g>
+  <rect x="584" y="218" width="412" height="92" rx="12" fill="#15171C" stroke="#2B2F37" stroke-width="1"/>
+  <circle cx="610" cy="248" r="13" fill="#262A31"/>
+  <text x="610" y="252.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" text-anchor="middle" fill="#D4D4D8">2</text>
+  <text x="634" y="246" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#F4F4F5">Private Cloud Compute</text>
+  <text x="634" y="264" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11.5" fill="#A1A1AA">PrivateCloudComputeLanguageModel</text>
+  <rect x="925" y="234" width="57" height="22" rx="11" fill="#3C262A"/>
+  <text x="953.5" y="249.14" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="600" text-anchor="middle" fill="#F87171">Failed</text>
+  <text x="600" y="294" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#D4D4D8">Fallback reason</text>
+  <g><rect x="701.86" y="278" width="109.6" height="22" rx="6" fill="#23272E"/><text x="709.86" y="294" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#E4E4E7">quotaExceeded</text></g>
+  <g><rect x="840.6" y="279" width="141.4" height="21" rx="6" fill="#23272E"/><text x="848.6" y="294" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11" fill="#A1A1AA">privateCloudCompute</text></g>
+  <rect x="584" y="322" width="412" height="92" rx="12" fill="#15171C" stroke="#2B2F37" stroke-width="1"/>
+  <circle cx="610" cy="352" r="13" fill="#262A31"/>
+  <text x="610" y="356.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" text-anchor="middle" fill="#D4D4D8">3</text>
+  <text x="634" y="350" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#F4F4F5">Anthropic</text>
+  <text x="634" y="368" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11.5" fill="#A1A1AA">claude-sonnet-5</text>
+  <rect x="898" y="338" width="84" height="22" rx="11" fill="#1C332A"/>
+  <text x="940" y="353.14" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="600" text-anchor="middle" fill="#4ADE80">Succeeded</text>
+  <text x="600" y="398" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" xml:space="preserve"><tspan fill="#F4F4F5" font-weight="600">431</tspan><tspan fill="#D4D4D8"> tokens in, </tspan><tspan fill="#F4F4F5" font-weight="600">318</tspan><tspan fill="#D4D4D8"> out</tspan></text>
+  <g><rect x="880.2" y="383" width="101.8" height="21" rx="6" fill="#23272E"/><text x="888.2" y="398" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11" fill="#A1A1AA">externalOptIn</text></g>
+  <circle cx="593" cy="444" r="8.5" fill="#1C332A"/>
+  <path d="M 589.4 444.2 l 2.4 2.4 l 4.8 -4.8" fill="none" stroke="#4ADE80" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="612" y="448.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#D4D4D8">Providers, models, and privacy modes</text>
+  <circle cx="593" cy="470" r="8.5" fill="#1C332A"/>
+  <path d="M 589.4 470.2 l 2.4 2.4 l 4.8 -4.8" fill="none" stroke="#4ADE80" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="612" y="474.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#D4D4D8">Statuses, fallback reasons, and token counts</text>
+  <circle cx="593" cy="496" r="8.5" fill="#3C262A"/>
+  <path d="M 590 493 l 6 6 M 596 493 l -6 6" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="612" y="500.5" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#D4D4D8">Never the prompt or the response text</text>
+  <text x="584" y="554" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#71717A">Model replies are scripted. The routing and the receipt are real.</text>
+  <rect x="24.5" y="18.5" width="991" height="553" rx="11.5" fill="none" stroke="#2B2F37" stroke-width="1"/>
+</svg>

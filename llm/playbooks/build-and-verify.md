@@ -26,7 +26,21 @@ open Examples/LMShowcase/LMShowcase.xcodeproj
 
 Generated `.xcodeproj` files are ignored and should not be committed.
 
-`./scripts/validate.sh` runs the package build, package tests, `llm/manifest.json` JSON/path validation, XcodeGen generation when available, and an unsigned showcase build when `xcodebuild` is available.
+`./scripts/validate.sh` runs the package build, package tests, the README asset check, `llm/manifest.json` JSON/path validation, XcodeGen generation when available, and an unsigned showcase build when `xcodebuild` is available.
+
+## README Assets
+
+The README images in `docs/assets/readme`, its generated blocks, and its Swift snippets come from
+`scripts/readme-assets`. After changing public API, routing, receipts, context compilation,
+evaluation, or capability values, regenerate them:
+
+```sh
+swift run --package-path scripts/readme-assets ReadmeAssets
+```
+
+`--check` writes nothing and fails on drift; `validate.sh` runs it. A README Swift block must match
+a marked region in `Snippets.swift`, which compiles against the package. See
+`scripts/readme-assets/README.md`.
 
 ## Command Line Tools Only
 
@@ -53,6 +67,7 @@ Without Xcode 27 locally, `scratch/os27-stub-check/check.sh <repo-root>` compile
 - XcodeGen is not installed.
 - The active Xcode toolchain does not include the required 26 SDKs.
 - Foundation Models APIs changed in a new SDK. Check the gated blocks in `FoundationModelLive.swift` first.
+- The README asset check failed after an intended change. Regenerate the assets, review the image diff, and commit it.
 
 ## Read Next
 

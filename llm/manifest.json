@@ -71,8 +71,8 @@
       "id": "build-and-verify",
       "path": "llm/playbooks/build-and-verify.md",
       "kind": "playbook",
-      "summary": "Local build, strict build, test, validation, and showcase generation commands.",
-      "keywords": ["build", "test", "validate", "warnings", "xcodegen"]
+      "summary": "Local build, strict build, test, validation, README asset, and showcase generation commands.",
+      "keywords": ["build", "test", "validate", "warnings", "xcodegen", "readme"]
     },
     {
       "id": "add-generation-primitive",

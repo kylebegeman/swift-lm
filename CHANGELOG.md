@@ -31,6 +31,7 @@ Breaking: the package is now `swift-lm` with `SwiftLM*` products, and the `LLM` 
 - `Codable` on `PromptContract`, `PromptExample`, `LMProviderMetadata`, `LMTokenUsage`, `LMToolDefinition`, `LMJSONSchema`, `LMGenerationParameters`, `LMContextPlan`, `LMContextBudgetReport`, `EvidenceSource`, `EvidenceSpan`, `StructuredGenerationSourceContext`, `ValidationIssue`, `StructuredGenerationValidationResult`, and `PromptEvaluationCase`.
 - `LMToolDefinition.estimatedDefinitionTokens(using:)`.
 - A Private Cloud Compute panel in the showcase.
+- A rebuilt README whose images, capability tables, and receipt example are generated from real SwiftLM output by `scripts/readme-assets`. Every Swift block in the README is compiled, and `./scripts/validate.sh` fails when an image or block goes stale.
 - Regression tests for every audit fix, the Foundation Models runtime behavior, conversation mapping, image encoding, and the Claude model-family rules. The suite now has 108 tests.
 
 ### Changed

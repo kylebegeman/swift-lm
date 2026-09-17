@@ -22,6 +22,8 @@ fi
 swift build
 # The expansion guard keeps empty arrays safe under `set -u` in the bash 3.2 that ships with macOS.
 swift test ${test_flags[@]+"${test_flags[@]}"}
+# The README images, generated blocks, and Swift snippets must match what the package produces now.
+swift run --package-path scripts/readme-assets ReadmeAssets --check
 jq empty llm/manifest.json
 
 while IFS= read -r documented_path; do

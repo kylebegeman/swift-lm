@@ -19,7 +19,7 @@ Keep app-specific models, product workflows, UI, account state, and credential s
 Requirements:
 
 - Swift 6.2 or newer
-- Xcode 26 with the iOS, macOS, and visionOS 26 SDKs; Xcode 27 to compile the OS 27 paths
+- Xcode 26 with the iOS, macOS, visionOS, and watchOS 26 SDKs; Xcode 27 to compile the OS 27 paths
 - XcodeGen for the optional showcase app
 
 Useful commands:
@@ -31,7 +31,7 @@ swift build -Xswiftc -warnings-as-errors
 ./scripts/validate.sh
 ```
 
-`./scripts/validate.sh` validates the Swift package, agent manifest, and showcase project when local tools are available.
+`./scripts/validate.sh` validates the Swift package, the README assets, the agent manifest, and the showcase project when local tools are available.
 
 ## Development Rules
 
@@ -56,7 +56,7 @@ swift build -Xswiftc -warnings-as-errors
 
 ## Foundation Models And OS 27 Work
 
-SwiftLM keeps iOS, macOS, and visionOS 26 as the package minimum and adopts OS 27 APIs behind a gate:
+SwiftLM keeps iOS, macOS, visionOS, and watchOS 26 as the package minimum and adopts OS 27 APIs behind a gate:
 
 - Framework-dependent code is wrapped in `#if canImport(FoundationModels) && !os(watchOS)`, because watchOS has no on-device model and the adapter does not support Private Cloud Compute there yet.
 - OS 27 symbols live inside `#if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY` blocks with `#available` checks for the 27 releases, because Xcode 27 ships Swift 6.4 with the OS 27 SDKs. Pass `-Xswiftc -DSWIFTLM_OS26_SDK_ONLY` to build with a Swift 6.4 toolchain that still uses an OS 26 SDK.
@@ -68,7 +68,7 @@ SwiftLM keeps iOS, macOS, and visionOS 26 as the package minimum and adopts OS 2
 - Add tests with fake clients before requiring live Apple Intelligence availability.
 - Build with Xcode 27 before changing the gated code. CI compiles it on GitHub's `xcode-27` image; locally without Xcode 27, `scratch/os27-stub-check` compiles the gated path against a stub of Apple's documented API.
 
-Remaining OS 27 concepts include Dynamic Profiles, `LanguageModel` provider packages, Core AI and MLX local language models, image attachments, system tools, watchOS 27, and the Evaluations framework.
+Remaining OS 27 work includes transcript compaction, images in earlier conversation turns, Private Cloud Compute on Apple Watch, and Evaluations framework alignment. Dynamic Profiles stay with Apple's API, and SwiftLM consumes `LanguageModel` providers rather than publishing its own. See `docs/14-wwdc26-readiness.md`.
 
 ## Documentation Rules
 
@@ -77,6 +77,8 @@ Remaining OS 27 concepts include Dynamic Profiles, `LanguageModel` provider pack
 - Temporary notes belong in `scratch/`.
 - Public-facing examples must use placeholder API keys and synthetic data.
 - Keep privacy claims tied to implementation.
+- README images, the capability tables, and the receipt example are generated. Change `scripts/readme-assets`, then run `swift run --package-path scripts/readme-assets ReadmeAssets`; do not edit the generated blocks by hand.
+- Every Swift block in the README must be a snippet in `scripts/readme-assets/Sources/ReadmeAssets/Snippets.swift`, so README code always compiles.
 - When an idea graduates from `scratch/`, move the durable parts into `docs/` and remove or rewrite stale scratch notes.
 
 ## Pull Requests

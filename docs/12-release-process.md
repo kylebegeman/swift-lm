@@ -14,7 +14,7 @@ Before any tag:
 
 1. Confirm the license is final.
 2. Confirm `SECURITY.md` has a real reporting path.
-3. Run `./scripts/validate.sh`.
+3. Run `./scripts/validate.sh`, which also checks that the README images, generated blocks, and snippets are current.
 4. Build DocC documentation.
 5. Review `CHANGELOG.md`.
 6. Review `docs/09-roadmap.md` and mark completed work honestly.
