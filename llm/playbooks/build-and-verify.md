@@ -41,8 +41,9 @@ The OS 27 Foundation Models symbols compile only with Xcode 27 (Swift 6.4). With
 blocks are inactive, so a green build does not prove they compile.
 
 CI covers both sides: the `Xcode 26` job builds on `macos-26` with Xcode 26.6, and the `Xcode 27`
-job builds on GitHub's `xcode-27` preview image (macOS 27 with the OS 27 SDKs). The Xcode 27 job is
-non-blocking while that image is a preview with a beta Xcode, so read its result explicitly.
+job builds on GitHub's `xcode-27` preview image (macOS 27 with the OS 27 SDKs). Both jobs also build
+the package for iOS, visionOS, and watchOS with `xcodebuild` and warnings as errors. The Xcode 27 job
+is non-blocking while that image is a preview with a beta Xcode, so read its result explicitly.
 
 Without Xcode 27 locally, `scratch/os27-stub-check/check.sh <repo-root>` compiles
 `SwiftLMFoundationModels` with the gate forced on against a stub of Apple's documented OS 27 API.

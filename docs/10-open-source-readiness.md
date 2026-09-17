@@ -2,7 +2,7 @@
 
 ## Current Status
 
-SwiftLM is ready for a local `1.0.0` release tag after the final validation script passes.
+SwiftLM `1.0.0` is tagged. Version `2.0.0` is on the `release/2.0.0` branch and is ready to tag once it builds with the released Xcode 27 and the branch merges. CI already builds it with the Xcode 27 beta on GitHub's preview image.
 
 The repository is structured as a public Swift package:
 
