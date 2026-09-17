@@ -8,27 +8,46 @@ on:
       - main
       - next
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    name: Swift Package
-    runs-on: macos-latest
+  validate:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    # The Xcode 27 image is a GitHub preview with a beta Xcode, so its result is reported without
+    # blocking the workflow. Set `experimental` to false once the image and Xcode 27 are GA.
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Xcode 26 (OS 26 SDKs)
+            runner: macos-26
+            xcode: /Applications/Xcode_26.6.app
+            experimental: false
+          - name: Xcode 27 (OS 27 SDKs, preview image)
+            runner: xcode-27
+            xcode: /Applications/Xcode_27.0.app
+            experimental: true
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Select newest Xcode
+      - name: Select Xcode
         run: |
-          newest="$(ls -d /Applications/Xcode_*.app | sort -V | tail -n 1)"
-          sudo xcode-select -s "$newest"
-          swift --version
+          sudo xcode-select -s "${{ matrix.xcode }}"
           xcodebuild -version
-
-      - name: Strict build
-        run: swift build -Xswiftc -warnings-as-errors
+          swift --version
 
       - name: Install XcodeGen
         run: brew install xcodegen
+
+      - name: Strict build
+        run: swift build -Xswiftc -warnings-as-errors
 
       - name: Validate
         run: ./scripts/validate.sh

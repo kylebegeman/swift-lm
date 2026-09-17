@@ -65,7 +65,7 @@ SwiftLM keeps iOS, macOS, and visionOS 26 as the package minimum and adopts OS 2
 - Do not hard-code context windows when the platform can report `contextSize`.
 - Treat Private Cloud Compute as networked model execution in policy and diagnostics, and never let `automatic` escalate to it.
 - Add tests with fake clients before requiring live Apple Intelligence availability.
-- Build with Xcode 27 before changing the gated code. Until it is installed, `scratch/os27-stub-check` compiles the gated path against a stub of Apple's documented API.
+- Build with Xcode 27 before changing the gated code. CI compiles it on GitHub's `xcode-27` image; locally without Xcode 27, `scratch/os27-stub-check` compiles the gated path against a stub of Apple's documented API.
 
 Remaining OS 27 concepts include Dynamic Profiles, `LanguageModel` provider packages, Core AI and MLX local language models, image attachments, system tools, watchOS 27, and the Evaluations framework.
 

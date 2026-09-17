@@ -55,6 +55,7 @@ Breaking: the package is now `swift-lm` with `SwiftLM*` products, and the `LLM` 
 - `LMRunReceiptError` and `LMWorkflowError` conform to `LocalizedError`.
 - `LMRequest.requiredCapabilities()` includes `instructions` when the request carries instructions.
 - `RetrievedSnippet` moved to `Retrieval/`, and `ContextPacker` moved to its own file.
+- CI runs a matrix: Xcode 26.6 on `macos-26`, and Xcode 27 on GitHub's `xcode-27` preview image as a non-blocking job, with a strict warnings-as-errors build in both. Checkout moved to `actions/checkout@v7`.
 - `scripts/validate.sh` works on Macs with only Command Line Tools: it points `swift test` at the bundled Swift Testing framework and skips the iOS showcase build when Xcode is not selected.
 
 ### Removed
