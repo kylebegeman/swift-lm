@@ -273,6 +273,35 @@ struct MultimodalConversationTests {
 
   #if canImport(FoundationModels) && !os(watchOS)
   @Test
+  func unavailableClientStaysUnavailableForSessionsAndTypedTools() async {
+    do {
+      _ = try await FoundationModelSession(client: .unavailable, instructions: "Unused.")
+      Issue.record("Expected the unavailable client to refuse to open a session.")
+    } catch let failure as FoundationModelFailure {
+      #expect(failure.reason == .unavailable(.unavailableInBuild))
+    } catch {
+      Issue.record("Unexpected error \(error)")
+    }
+
+    let request = FoundationModelGenerationRequest(
+      prompt: CompiledPrompt(
+        contract: PromptContract(id: "unused", version: "v1", instructions: "Unused."),
+        metadata: FoundationModelDefaults.metadata(),
+        userPrompt: "Unused."
+      )
+    )
+    do {
+      _ = try await FoundationModelClient.unavailable.respond(to: request, tools: [])
+      Issue.record("Expected the typed tool API to report unavailability.")
+    } catch let failure as FoundationModelFailure {
+      #expect(failure.reason == .unavailable(.unavailableInBuild))
+    } catch {
+      Issue.record("Unexpected error \(error)")
+    }
+    #expect(await FoundationModelClient.unavailable.availability(for: .privateCloudCompute) == .unavailableInBuild)
+  }
+
+  @Test
   func foundationModelSessionOpensOrReportsUnavailability() async throws {
     do {
       let session = try await FoundationModelSession(instructions: "Answer briefly.")

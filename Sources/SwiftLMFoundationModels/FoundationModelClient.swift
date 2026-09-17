@@ -135,18 +135,24 @@ public struct FoundationModelClient: Sendable {
     }
   }
 
-  public static let unavailable = Self(
-    checkAvailability: { _, _ in .unavailableInBuild },
-    countTokens: { request in
-      TokenCounter.latinHeuristic.count(request.text)
-    },
-    prewarm: { _ in
-      throw FoundationModelFailure(reason: .unavailable(.unavailableInBuild))
-    },
-    respond: { _ in
-      throw FoundationModelFailure(reason: .unavailable(.unavailableInBuild))
-    }
-  )
+  /// A client that reports Foundation Models as unavailable for every request, including the
+  /// typed tool APIs and `FoundationModelSession`.
+  public static let unavailable: Self = {
+    var client = Self(
+      checkAvailability: { _, _ in .unavailableInBuild },
+      countTokens: { request in
+        TokenCounter.latinHeuristic.count(request.text)
+      },
+      prewarm: { _ in
+        throw FoundationModelFailure(reason: .unavailable(.unavailableInBuild))
+      },
+      respond: { _ in
+        throw FoundationModelFailure(reason: .unavailable(.unavailableInBuild))
+      }
+    )
+    client.sessionSource = .unavailable
+    return client
+  }()
 
   /// A client for Apple's system models: the on-device model and, on the OS 27 releases, Private
   /// Cloud Compute. On watchOS, which has no on-device model, the client reports that Foundation
@@ -159,7 +165,7 @@ public struct FoundationModelClient: Sendable {
     #endif
   }()
 
-  static func derivedStream(
+  private static func derivedStream(
     for request: FoundationModelGenerationRequest,
     respond: @escaping @Sendable (FoundationModelGenerationRequest) async throws
       -> FoundationModelGenerationResponse<String>
@@ -183,6 +189,13 @@ public struct FoundationModelClient: Sendable {
 }
 
 /// Type-erased storage for a live session source, so the framework-independent client can carry it.
+///
+/// Clients built from closures carry no source, and their typed tool APIs use Apple's system models.
 struct FoundationModelSessionSourceBox: Sendable {
+  /// Marks a client whose typed APIs must report Foundation Models as unavailable.
+  struct UnavailableMarker: Sendable {}
+
+  static let unavailable = Self(value: UnavailableMarker())
+
   var value: any Sendable
 }

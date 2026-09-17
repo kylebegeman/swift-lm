@@ -265,6 +265,23 @@ struct FoundationModelSessionSource: Sendable {
   )
 }
 
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+extension FoundationModelSessionSource {
+  /// A source that reports Foundation Models as unavailable, for `FoundationModelClient.unavailable`.
+  static let unavailable = Self(
+    availability: { _, _, _ in .unavailableInBuild },
+    countTokens: { request in
+      TokenCounter.latinHeuristic.count(request.text)
+    },
+    makeSession: { _ in
+      throw FoundationModelFailure(reason: .unavailable(.unavailableInBuild))
+    },
+    onDeviceAvailability: { _, _ in .unavailableInBuild },
+    reportedRuntimeProfile: { target, _ in .preset(for: target) },
+    runtimeProfile: { target, _ in .preset(for: target) }
+  )
+}
+
 /// What a session source needs to open a session.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 struct FoundationModelSessionConfiguration: Sendable {
@@ -303,7 +320,14 @@ extension FoundationModelClient {
   /// The session source behind the typed APIs: Apple's system models unless the client wraps a
   /// custom `LanguageModel`.
   var liveSessionSource: FoundationModelSessionSource {
-    (sessionSource?.value as? FoundationModelSessionSource) ?? .system
+    switch sessionSource?.value {
+    case let source as FoundationModelSessionSource:
+      return source
+    case is FoundationModelSessionSourceBox.UnavailableMarker:
+      return .unavailable
+    default:
+      return .system
+    }
   }
 
   /// Builds a live client whose closures and typed APIs all use `source`.

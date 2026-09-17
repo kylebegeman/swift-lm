@@ -31,7 +31,7 @@ Breaking: the package is now `swift-lm` with `SwiftLM*` products, and the `LLM` 
 - `Codable` on `PromptContract`, `PromptExample`, `LMProviderMetadata`, `LMTokenUsage`, `LMToolDefinition`, `LMJSONSchema`, `LMGenerationParameters`, `LMContextPlan`, `LMContextBudgetReport`, `EvidenceSource`, `EvidenceSpan`, `StructuredGenerationSourceContext`, `ValidationIssue`, `StructuredGenerationValidationResult`, and `PromptEvaluationCase`.
 - `LMToolDefinition.estimatedDefinitionTokens(using:)`.
 - A Private Cloud Compute panel in the showcase.
-- Regression tests for every audit fix, the Foundation Models runtime behavior, conversation mapping, image encoding, and the Claude model-family rules. The suite now has 107 tests.
+- Regression tests for every audit fix, the Foundation Models runtime behavior, conversation mapping, image encoding, and the Claude model-family rules. The suite now has 108 tests.
 
 ### Changed
 
