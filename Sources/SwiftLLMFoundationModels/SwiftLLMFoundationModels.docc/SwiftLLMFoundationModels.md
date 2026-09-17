@@ -8,14 +8,16 @@ SwiftLLMFoundationModels is the only product that should import Apple's Foundati
 
 Use this product to:
 
-- check model availability before generation
+- check on-device and Private Cloud Compute availability, including quota, before generation
+- read the platform-reported context window and model capabilities through runtime profiles
 - prewarm Foundation Models sessions where available
 - count tokens with the system tokenizer when possible
-- generate strings and guided typed outputs
+- generate and stream strings, and generate guided typed outputs
+- ask for reasoning levels on targets that support them
 - pass native Foundation Models `Tool` values through the typed adapter API
 - call Foundation Models through the shared `LLMClient` protocol
 - publish provider-neutral capabilities for routing decisions
-- map Foundation Models failures into fallback reasons
+- map Foundation Models failures, including OS 27 quota, timeout, and network failures, into fallback reasons
 - test unavailable and fake-client paths without importing Foundation Models in the app's core logic
 
 ## Topics
@@ -26,6 +28,14 @@ Use this product to:
 - ``FoundationModelGenerationRequest``
 - ``FoundationModelGenerationResponse``
 - ``FoundationModelGenerationOptions``
+- ``FoundationModelToolCallingMode``
+- ``FoundationModelStreamEvent``
+
+### Execution Targets
+
+- ``FoundationModelExecutionTarget``
+- ``FoundationModelRuntimeProfile``
+- ``FoundationModelQuotaStatus``
 
 ### Availability
 

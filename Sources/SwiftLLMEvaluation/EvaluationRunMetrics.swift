@@ -2,6 +2,7 @@ import Foundation
 import SwiftLLM
 
 public struct EvaluationRunMetrics: Codable, Equatable, Sendable {
+  public var cacheWriteInputTokens: Int?
   public var cachedInputTokens: Int?
   public var durationMilliseconds: Double?
   public var estimatedInputTokens: Int?
@@ -21,8 +22,10 @@ public struct EvaluationRunMetrics: Codable, Equatable, Sendable {
     inputChunkCount: Int? = nil,
     retrievalSnippetCount: Int? = nil,
     fallbackReason: String? = nil,
-    validationIssueCount: Int? = nil
+    validationIssueCount: Int? = nil,
+    cacheWriteInputTokens: Int? = nil
   ) {
+    self.cacheWriteInputTokens = cacheWriteInputTokens
     self.cachedInputTokens = cachedInputTokens
     self.durationMilliseconds = durationMilliseconds
     self.estimatedInputTokens = estimatedInputTokens
@@ -51,7 +54,8 @@ public struct EvaluationRunMetrics: Codable, Equatable, Sendable {
       inputChunkCount: inputChunkCount,
       retrievalSnippetCount: retrievalSnippetCount,
       fallbackReason: fallbackReason,
-      validationIssueCount: validationIssueCount
+      validationIssueCount: validationIssueCount,
+      cacheWriteInputTokens: tokenUsage?.cacheWriteInputTokens
     )
   }
 
@@ -70,7 +74,8 @@ public struct EvaluationRunMetrics: Codable, Equatable, Sendable {
       inputChunkCount: inputChunkCount,
       retrievalSnippetCount: retrievalSnippetCount,
       fallbackReason: receipt.attempts.last(where: { $0.error?.fallbackReason != nil })?.error?.fallbackReason,
-      validationIssueCount: validationIssueCount
+      validationIssueCount: validationIssueCount,
+      cacheWriteInputTokens: receipt.tokenUsage?.cacheWriteInputTokens
     )
   }
 }

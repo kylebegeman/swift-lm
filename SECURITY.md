@@ -6,15 +6,16 @@ SwiftLLM is a local-first Swift package. The core target has no network access, 
 
 | Version | Supported |
 |---|---|
-| `0.1.x` | Yes |
-| `main` / `next` | Best effort before the next release |
+| `2.0.x` | Yes |
+| `1.0.x` | Security fixes only until 2.1.0 |
+| `master` / `next` | Best effort before the next release |
 | Older pre-release tags | No |
 
 ## Reporting a Vulnerability
 
 Please report vulnerabilities through GitHub Security Advisories:
 
-https://github.com/mrbagels/swift-llm/security/advisories/new
+https://github.com/kylebegeman/swift-llm/security/advisories/new
 
 Do not open a public issue for a vulnerability until it has been triaged.
 
@@ -56,7 +57,8 @@ Generally out of scope:
 - Raw prompts, transcripts, outputs, tool results, and provider payloads should not be stored by default.
 - Debug bundles should be local and redacted unless the caller explicitly chooses a less restrictive content policy.
 - Foundation Models behavior should remain isolated to `SwiftLLMFoundationModels`.
-- Private Cloud Compute and external cloud usage should be represented as networked execution in app policy, even when the provider offers strong privacy guarantees.
+- Private Cloud Compute and external cloud usage should be represented as networked execution in app policy, even when the provider offers strong privacy guarantees. The Foundation Models adapter never routes a request to Private Cloud Compute unless the app targets it explicitly.
+- OpenAI responses are not stored server-side unless the app opts in with `storesResponses`.
 
 ## Disclosure Process
 

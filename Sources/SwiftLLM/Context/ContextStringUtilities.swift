@@ -9,6 +9,13 @@ func normalizedMergeKey(_ text: String) -> String {
 }
 
 extension String {
+  /// Case- and diacritic-insensitive containment that does not depend on the device locale, so
+  /// evaluation results are identical on every device.
+  package func containsIgnoringCaseAndDiacritics(_ needle: String) -> Bool {
+    guard !needle.isEmpty else { return true }
+    return range(of: needle, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+  }
+
   var normalizedWhitespace: String {
     split(whereSeparator: \.isWhitespace)
       .joined(separator: " ")

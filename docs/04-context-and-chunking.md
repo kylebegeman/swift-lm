@@ -118,10 +118,11 @@ The compiler:
 - builds a `CompiledPrompt` whose user prompt includes retrieved context when requested
 - returns a context budget report and source context for structured validation
 
-`LLMPipeline` now uses `LLMContextCompiler` internally. Apps can also call the
+`LLMPipeline` uses `LLMContextCompiler` internally. Apps can also call the
 compiler directly when they need to preview context pressure, show dropped
-snippets, preflight a request, or assemble a Foundation Models request before
-the OS 27 SDK-specific APIs are available.
+snippets, or preflight a request. Pass the platform-reported context window from
+`FoundationModelClient.runtimeProfile(for:)` as the `TokenBudget.contextLimit`
+instead of assuming 4,096 tokens.
 
 ## Chime In Implications
 

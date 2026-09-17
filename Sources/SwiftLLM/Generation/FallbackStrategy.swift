@@ -9,8 +9,10 @@ public enum FallbackReason: Equatable, Sendable {
   case unsupportedGuide
   case contextExceeded
   case guardrailViolation
+  case quotaExceeded
   case rateLimited
   case refusal
+  case timeout
   case unsupported
   case validationFailed
   case providerError(String)

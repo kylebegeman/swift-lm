@@ -25,15 +25,8 @@ extension LLMStep where Output == Input {
         stepID: id,
         report: plan.budgetReport(budget: context.budget, counter: context.counter)
       )
-      let evidence = result.packedSnippets.map { snippet in
-        EvidenceSpan(
-          id: snippet.id,
-          text: snippet.text,
-          sourceID: snippet.id,
-          characterRange: snippet.characterRange
-        )
-      }
 
+      // Packed snippets become grounding sources, not evidence. Evidence is what the model cites.
       return LLMStepResult(
         output: input,
         events: [
@@ -53,7 +46,6 @@ extension LLMStep where Output == Input {
           payload: .references(result.packedSnippets.map(\.id))
         ),
         budgetReports: [budgetReport],
-        evidence: evidence,
         sourceReferences: result.retrieval.sources,
         retrievalResults: [result],
         sourceContext: result.sourceContext
@@ -207,6 +199,11 @@ extension LLMStep {
 
   /// Convert validation/generation pipeline status into final output, using a
   /// deterministic fallback when the supplied policy can resolve one.
+  ///
+  /// The step throws when validation rejected the candidate and no fallback resolves, so a
+  /// contract-violating value never becomes the workflow's final output. Apps that want to show
+  /// rejected candidates in review UI should stop at `structuredValidation` and read
+  /// `StructuredGenerationPipelineResult.candidateOutput`.
   public static func repairOrFallback<Generated: Sendable>(
     id: String,
     repairPolicy: StructuredGenerationRepairPolicy<Generated> = .none,
@@ -275,15 +272,14 @@ extension LLMStep {
         )
       }
 
-      if let output = result.output {
-        return LLMStepResult(
-          output: output,
-          validationIssues: result.validation.issues,
-          evidence: result.candidate?.evidence ?? []
+      switch result.status {
+      case .rejected:
+        throw LLMError(
+          "Workflow step \(id) rejected the generated candidate with \(result.validation.issues.count) validation issue(s) and no fallback resolved."
         )
+      case .accepted, .failed, .fellBack:
+        throw LLMError("Workflow step \(id) could not repair or fall back.")
       }
-
-      throw LLMError("Workflow step \(id) could not repair or fall back.")
     }
   }
 }

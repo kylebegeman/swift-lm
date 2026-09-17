@@ -3,9 +3,9 @@
 [![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/platforms-iOS%2026%20%7C%20macOS%2026%20%7C%20visionOS%2026-lightgrey.svg)](#requirements)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE.md)
-[![CI](https://github.com/mrbagels/swift-llm/actions/workflows/ci.yml/badge.svg)](https://github.com/mrbagels/swift-llm/actions/workflows/ci.yml)
+[![CI](https://github.com/kylebegeman/swift-llm/actions/workflows/ci.yml/badge.svg)](https://github.com/kylebegeman/swift-llm/actions/workflows/ci.yml)
 
-SwiftLLM is a Swift-native reliability layer for local-first language model features on Apple platforms.
+SwiftLLM is a Swift-native reliability layer for local-first language model features on Apple platforms. It works with language models of every size: Apple's on-device model, Apple Foundation Models on Private Cloud Compute, and explicitly configured cloud providers.
 
 It helps you build AI features where the hard parts are explicit: prompt contracts, token budgets, context packing, local retrieval, structured generation, validation, fallback, provider routing, and evaluation. The core package has no network access and no telemetry. External providers live in opt-in adapter targets.
 
@@ -52,10 +52,10 @@ flowchart LR
 
 - Swift 6.2 or newer
 - iOS 26, macOS 26, or visionOS 26 minimum package targets
-- Xcode with the matching Apple platform SDKs
+- Xcode 26 for the OS 26 SDKs; Xcode 27 (Swift 6.4) to compile the OS 27 paths
 - XcodeGen only for the optional showcase app
 
-The package now includes provider-neutral models for OS 27 Foundation Models concepts, including Private Cloud Compute execution targets, dynamic context-size hints, reasoning effort, quota status, endpoint routing, and run receipts. Dynamic Profiles, provider packages, and Evaluations remain represented at the abstraction level until the local OS 27 SDK is installed. Code that imports unavailable OS 27 symbols will be added only behind availability checks.
+The OS 27 Foundation Models features (Private Cloud Compute, platform-reported context size, reasoning levels, usage reporting, tool calling modes, and the new error types) are implemented behind `#if compiler(>=6.4)` plus runtime availability checks. The package builds with Xcode 26 and runs on OS 26 devices; the OS 27 paths activate for apps built with Xcode 27 running on OS 27 devices.
 
 ## Installation
 
@@ -63,7 +63,7 @@ Add the package with Swift Package Manager:
 
 ```swift
 dependencies: [
-  .package(url: "https://github.com/mrbagels/swift-llm.git", from: "1.0.0")
+  .package(url: "https://github.com/kylebegeman/swift-llm.git", from: "2.0.0")
 ]
 ```
 
@@ -106,6 +106,25 @@ let response = try await client.respond(
 print(response.text)
 ```
 
+Target Apple's server model on Private Cloud Compute (OS 27, entitlement required) with the same adapter:
+
+```swift
+let privateCloud = FoundationModelClient.live.targeting(.privateCloudCompute)
+let availability = await privateCloud.availability(for: .privateCloudCompute)
+let profile = privateCloud.runtimeProfile()
+
+if availability.isAvailable, profile.quotaStatus.permitsGeneration {
+  let response = try await privateCloud.respond(
+    to: LLMRequest(
+      instructions: "Analyze the document and list the open questions.",
+      messages: [.user(documentText)],
+      parameters: .init(maxOutputTokens: 800, reasoningEffort: .medium)
+    )
+  )
+  print(response.text, response.reasoningText ?? "", response.tokenUsage?.reasoningTokens ?? 0)
+}
+```
+
 Route across local and explicitly configured provider-backed clients:
 
 ```swift
@@ -128,12 +147,14 @@ let response = try await client.respond(
     instructions: "Extract the decision, owner, and due date.",
     messages: [.user(meetingNote)],
     responseFormat: .jsonObject,
-    parameters: .deterministic
+    parameters: .init(maxOutputTokens: 400)
   )
 )
 ```
 
 API keys are provided by your app at runtime. SwiftLLM does not define a key storage policy and does not persist credentials.
+
+Routing is capability-aware. Current Claude and GPT reasoning models reject `temperature`, so a request with `.deterministic` parameters skips those adapters instead of failing; leave sampling parameters nil for reasoning models and use `reasoningEffort` to control depth. OpenAI responses are not stored server-side unless you opt in.
 
 For larger apps, register already-created clients with `LLMEndpointRegistry` and
 build routers from endpoint IDs, priorities, enabled state, and routing plans.
@@ -265,32 +286,26 @@ SwiftLLM is designed around explicit boundaries:
 
 Native Foundation Models `Tool` values stay on the typed `SwiftLLMFoundationModels` API. Provider-neutral requests intentionally reject local tool execution unless an app calls the Foundation-specific wrapper with concrete `[any Tool]` values.
 
-## WWDC26 Readiness
+## OS 27 Support
 
-Apple's WWDC26 Foundation Models updates point directly at SwiftLLM's roadmap:
+SwiftLLM 2.0 adopts the OS 27 Foundation Models framework:
 
-- Private Cloud Compute through `PrivateCloudComputeLanguageModel`
-- dynamic `contextSize`
-- reasoning levels and reasoning token accounting
-- quota usage and graceful fallback UI hooks
-- Dynamic Profiles for model, tool, instruction, and transcript changes
-- `LanguageModel` and `LanguageModelExecutor` provider packages
-- Core AI and MLX-backed local language models
-- system tools for Vision and Spotlight-backed RAG
-- Evaluations framework integration in Xcode 27
-- `fm` CLI and Python SDK workflows for prompt iteration
+- Private Cloud Compute through `FoundationModelExecutionTarget.privateCloudCompute`, with availability, locale, and quota checks before each request
+- platform-reported `contextSize` for on-device and server models
+- reasoning levels through `LLMGenerationParameters.reasoningEffort`, with reasoning text and reasoning token accounting
+- quota status mapped to `FoundationModelQuotaStatus` and `FallbackReason.quotaExceeded`, so a router can fall back to the on-device model when a daily limit is reached
+- tool calling modes, usage reporting, and the OS 27 error taxonomy
+- native streaming on every supported release
 
-SwiftLLM's current code remains SDK-safe for the installed iOS 26 era toolchain. The planned OS 27 work is tracked in [Roadmap](docs/09-roadmap.md) and [WWDC26 Readiness](docs/14-wwdc26-readiness.md).
+Still ahead: Dynamic Profiles, session reuse, the `LanguageModel` provider bridge for Core AI, MLX, and third-party packages, image attachments, watchOS 27, and Evaluations framework alignment. See [Roadmap](docs/09-roadmap.md) and [WWDC26 Readiness](docs/14-wwdc26-readiness.md).
 
 ```mermaid
 flowchart LR
-  Today["Shipping today"] --> Core["Prompt, context, RAG, routing, eval"]
-  Today --> Providers["Foundation Models, OpenAI, Anthropic"]
-  Next["OS 27 readiness"] --> PCC["PCC, reasoning, quota"]
-  Next --> Profiles["Dynamic profile concepts"]
-  Next --> Endpoints["Endpoint registry and routing policy"]
-  Next --> Receipts["Run receipts and context snapshots"]
-  Next --> Evaluations["Evaluations framework alignment"]
+  Local["On-device model"] --> Router["Capability-aware router"]
+  PCC["Private Cloud Compute"] --> Router
+  Cloud["OpenAI, Anthropic"] --> Router
+  Router --> Quota["Quota, reasoning, usage receipts"]
+  Router --> Fallback["Explicit fallback ladder"]
 ```
 
 ## Showcase
@@ -334,6 +349,7 @@ Start with:
 - [Release Process](docs/12-release-process.md)
 - [Provider Adapters](docs/13-provider-adapters.md)
 - [WWDC26 Readiness](docs/14-wwdc26-readiness.md)
+- [2.0.0 Release Notes](docs/16-2.0.0-release-notes.md)
 
 Agents should start at [llm/START_HERE.md](llm/START_HERE.md).
 

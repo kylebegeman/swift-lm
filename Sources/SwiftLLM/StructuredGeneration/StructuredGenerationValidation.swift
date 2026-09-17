@@ -1,11 +1,11 @@
 import Foundation
 
-public enum ValidationSeverity: String, Equatable, Sendable {
+public enum ValidationSeverity: String, CaseIterable, Codable, Equatable, Hashable, Sendable {
   case warning
   case error
 }
 
-public struct ValidationIssue: Equatable, Identifiable, Sendable {
+public struct ValidationIssue: Codable, Equatable, Hashable, Identifiable, Sendable {
   public var evidenceID: EvidenceSpan.ID?
   public var id: String
   public var message: String
@@ -27,7 +27,7 @@ public struct ValidationIssue: Equatable, Identifiable, Sendable {
   }
 }
 
-public struct StructuredGenerationValidationResult: Equatable, Sendable {
+public struct StructuredGenerationValidationResult: Codable, Equatable, Sendable {
   public var issues: [ValidationIssue]
 
   public init(issues: [ValidationIssue] = []) {

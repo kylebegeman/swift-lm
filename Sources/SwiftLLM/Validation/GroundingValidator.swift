@@ -13,7 +13,7 @@ public struct GroundingValidator: Sendable {
   ) -> Bool {
     let trimmedGeneratedText = generatedText.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmedGeneratedText.isEmpty else { return false }
-    if sourceText.localizedCaseInsensitiveContains(trimmedGeneratedText) {
+    if sourceText.range(of: trimmedGeneratedText, options: .caseInsensitive) != nil {
       return true
     }
 

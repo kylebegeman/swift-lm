@@ -87,6 +87,7 @@ public struct LLMProviderReceiptSnapshot: Codable, Equatable, Sendable {
 }
 
 public struct LLMTokenUsageReceipt: Codable, Equatable, Sendable {
+  public var cacheWriteInputTokens: Int?
   public var cachedInputTokens: Int?
   public var estimatedInputTokens: Int
   public var estimatedOutputTokens: Int
@@ -100,8 +101,10 @@ public struct LLMTokenUsageReceipt: Codable, Equatable, Sendable {
     measuredInputTokens: Int? = nil,
     measuredOutputTokens: Int? = nil,
     cachedInputTokens: Int? = nil,
-    reasoningTokens: Int? = nil
+    reasoningTokens: Int? = nil,
+    cacheWriteInputTokens: Int? = nil
   ) {
+    self.cacheWriteInputTokens = cacheWriteInputTokens
     self.cachedInputTokens = cachedInputTokens
     self.estimatedInputTokens = estimatedInputTokens
     self.estimatedOutputTokens = estimatedOutputTokens
@@ -117,7 +120,8 @@ public struct LLMTokenUsageReceipt: Codable, Equatable, Sendable {
       measuredInputTokens: usage.measuredInputTokens,
       measuredOutputTokens: usage.measuredOutputTokens,
       cachedInputTokens: usage.cachedInputTokens,
-      reasoningTokens: usage.reasoningTokens
+      reasoningTokens: usage.reasoningTokens,
+      cacheWriteInputTokens: usage.cacheWriteInputTokens
     )
   }
 }
@@ -251,7 +255,7 @@ public struct LLMInstrumentedResponse: Sendable {
   }
 }
 
-public struct LLMRunReceiptError: Error {
+public struct LLMRunReceiptError: Error, LocalizedError {
   public var receipt: LLMRunReceipt
   public var underlyingError: any Error
 
@@ -261,6 +265,10 @@ public struct LLMRunReceiptError: Error {
   ) {
     self.receipt = receipt
     self.underlyingError = underlyingError
+  }
+
+  public var errorDescription: String? {
+    (underlyingError as? any LocalizedError)?.errorDescription ?? underlyingError.localizedDescription
   }
 }
 
@@ -279,10 +287,14 @@ extension FallbackReason {
       return "guardrailViolation"
     case .providerError:
       return "providerError"
+    case .quotaExceeded:
+      return "quotaExceeded"
     case .rateLimited:
       return "rateLimited"
     case .refusal:
       return "refusal"
+    case .timeout:
+      return "timeout"
     case .unavailable:
       return "unavailable"
     case .unsupported:
@@ -316,8 +328,12 @@ extension LLMClientErrorReason {
       return "network"
     case .provider:
       return "provider"
+    case .quotaExceeded:
+      return "quotaExceeded"
     case .rateLimited:
       return "rateLimited"
+    case .timeout:
+      return "timeout"
     case .unavailable:
       return "unavailable"
     case .unsupported:

@@ -107,9 +107,7 @@ public struct LLMContextCompiler: Sendable {
   public func compile(_ input: LLMContextCompilationInput) -> LLMContextCompilationResult {
     let fixedItems = makeFixedItems(input)
     let fixedInputTokens = fixedItems.reduce(0) { $0 + $1.tokenCount(using: counter) } +
-      input.tools.reduce(0) { total, tool in
-        total + counter.count(tool.name) + counter.count(tool.description) + counter.count(String(describing: tool.inputSchema))
-      }
+      input.tools.reduce(0) { $0 + $1.estimatedDefinitionTokens(using: counter) }
 
     let packedSnippets = ContextPacker(
       budget: budget,
@@ -188,10 +186,11 @@ public struct LLMContextCompiler: Sendable {
 
     if !input.examples.isEmpty {
       let examples = input.examples.map(\.promptFragment).joined(separator: "\n\n")
+      // Examples travel with the instructions, so they are accounted on that surface.
       items.append(
         LLMContextItem(
           id: "examples",
-          surface: .prompt,
+          surface: .instructions,
           text: examples,
           trust: .trustedApp,
           estimatedTokens: counter.count(examples)
@@ -219,13 +218,14 @@ public struct LLMContextCompiler: Sendable {
   ) -> [LLMContextItem] {
     guard !contextBlock.isEmpty else { return [] }
 
+    // Count the rendered block, which includes citation headers, rather than the raw snippets.
     return [
       LLMContextItem(
         id: "retrieved-context",
         surface: .retrievedContext,
         text: contextBlock,
         trust: .trustedApp,
-        estimatedTokens: packedSnippets.reduce(0) { $0 + $1.tokenCount }
+        estimatedTokens: max(counter.count(contextBlock), packedSnippets.reduce(0) { $0 + $1.tokenCount })
       ),
     ]
   }

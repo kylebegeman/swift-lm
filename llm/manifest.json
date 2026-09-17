@@ -47,6 +47,13 @@
       "keywords": ["release", "1.0.0", "validation"]
     },
     {
+      "id": "release-notes-2-0-0",
+      "path": "docs/16-2.0.0-release-notes.md",
+      "kind": "release-notes",
+      "summary": "2.0.0 OS 27 Foundation Models adoption, provider adapter fixes, and validation summary.",
+      "keywords": ["release", "2.0.0", "OS 27", "Private Cloud Compute"]
+    },
+    {
       "id": "reliability-patterns",
       "path": "llm/capabilities/reliability-patterns.md",
       "kind": "capability",

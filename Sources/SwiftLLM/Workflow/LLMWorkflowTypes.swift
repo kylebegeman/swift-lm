@@ -64,9 +64,35 @@ public enum LLMWorkflowEventKind: String, Equatable, Sendable {
   case fallbackApplied
   case generationCompleted
   case retrievalCompleted
+  case stepFailed
   case stepFinished
   case stepStarted
   case validationCompleted
+}
+
+/// The error a workflow throws when a step fails.
+///
+/// It carries the diagnostics accumulated before the failure, so callers can log events, provider
+/// metadata, token usage, and budget reports the same way they would after a successful run.
+/// Task cancellation is rethrown as `CancellationError` without wrapping.
+public struct LLMWorkflowError: Error, LocalizedError {
+  public var context: LLMWorkflowContext
+  public var stepID: String?
+  public var underlyingError: any Error
+
+  public init(
+    underlyingError: any Error,
+    stepID: String? = nil,
+    context: LLMWorkflowContext
+  ) {
+    self.context = context
+    self.stepID = stepID
+    self.underlyingError = underlyingError
+  }
+
+  public var errorDescription: String? {
+    (underlyingError as? any LocalizedError)?.errorDescription ?? underlyingError.localizedDescription
+  }
 }
 
 /// A deterministic event emitted by workflow orchestration.

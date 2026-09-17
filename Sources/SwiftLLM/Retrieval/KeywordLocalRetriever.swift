@@ -32,7 +32,7 @@ public struct KeywordLocalRetriever: LocalRetriever {
       overlapUnitCount: 0,
       counter: counter
     )
-    var snippets: [RetrievedSnippet] = []
+    var snippets: [(snippet: RetrievedSnippet, chunkIndex: Int)] = []
     var sourcesByID: [SourceReference.ID: SourceReference] = [:]
 
     for document in documents where query.allows(sourceID: document.source.id) {
@@ -56,38 +56,42 @@ public struct KeywordLocalRetriever: LocalRetriever {
 
         sourcesByID[document.source.id] = document.source
         snippets.append(
-          RetrievedSnippet(
-            id: "\(document.id)#\(chunk.id)",
-            sourceID: document.source.id,
-            text: chunk.text,
-            tokenCount: chunk.tokenCount,
-            score: score,
-            sourceDisplayName: document.source.displayName,
-            sourceKind: document.source.kind,
-            characterRange: document.text.intRange(for: chunk.characterRange),
-            isRequired: query.requiredSourceIDs.contains(document.source.id)
+          (
+            snippet: RetrievedSnippet(
+              id: "\(document.id)#\(chunk.id)",
+              sourceID: document.source.id,
+              text: chunk.text,
+              tokenCount: chunk.tokenCount,
+              score: score,
+              sourceDisplayName: document.source.displayName,
+              sourceKind: document.source.kind,
+              characterRange: document.text.intRange(for: chunk.characterRange),
+              isRequired: query.requiredSourceIDs.contains(document.source.id)
+            ),
+            chunkIndex: chunk.id
           )
         )
       }
     }
 
-    // User-selected sources are stronger intent than incidental keyword score.
+    // User-selected sources are stronger intent than incidental keyword score. Ties keep document
+    // order by chunk index so a required note is never returned out of sequence.
     let ranked = snippets
       .sorted { lhs, rhs in
-        if lhs.isRequired != rhs.isRequired {
-          return lhs.isRequired
+        if lhs.snippet.isRequired != rhs.snippet.isRequired {
+          return lhs.snippet.isRequired
         }
-        if lhs.score != rhs.score {
-          return lhs.score > rhs.score
+        if lhs.snippet.score != rhs.snippet.score {
+          return lhs.snippet.score > rhs.snippet.score
         }
-        if lhs.sourceID != rhs.sourceID {
-          return lhs.sourceID < rhs.sourceID
+        if lhs.snippet.sourceID != rhs.snippet.sourceID {
+          return lhs.snippet.sourceID < rhs.snippet.sourceID
         }
-        return lhs.id < rhs.id
+        return lhs.chunkIndex < rhs.chunkIndex
       }
       .prefix(query.maxResults)
 
-    let resultSnippets = Array(ranked)
+    let resultSnippets = ranked.map(\.snippet)
     let sources = resultSnippets
       .compactMap { sourcesByID[$0.sourceID] }
       .uniquedByID()

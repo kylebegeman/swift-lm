@@ -111,7 +111,7 @@ extension StructuredEvaluationAssertion {
       message: "Expected text to contain \(requiredText).",
       path: path
     ) { output in
-      value(output).localizedCaseInsensitiveContains(requiredText)
+      value(output).containsIgnoringCaseAndDiacritics(requiredText)
     }
   }
 }

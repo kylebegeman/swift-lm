@@ -20,7 +20,7 @@ struct FoundationModelSupportTests {
   @Test
   func foundationModelFailureMapsContextErrorToFallback() {
     let failure = FoundationModelFailure(
-      reason: .contextExceeded,
+      reason: .contextExceeded(),
       debugDescription: "Prompt used too many tokens."
     )
 
@@ -60,6 +60,7 @@ struct FoundationModelSupportTests {
 
     #expect(
       request.requiredCapabilities(streaming: true) == [
+        .forcedToolChoice,
         .jsonSchemaResponse,
         .stopSequences,
         .streaming,
@@ -167,18 +168,19 @@ struct FoundationModelSupportTests {
     )
     let metadata = FoundationModelDefaults.metadata(
       promptVersion: "cloud-v1",
-      modelIdentifier: "PrivateCloudComputeLanguageModel",
       executionTarget: .privateCloudCompute
     )
 
     #expect(profile.executionTarget == .privateCloudCompute)
     #expect(profile.contextWindowTokens == 32_768)
+    #expect(!profile.isContextWindowReported)
     #expect(profile.supportsReasoning)
-    #expect(profile.supportsDynamicContext)
     #expect(profile.quotaStatus.permitsGeneration)
-    #expect(options.requestedContextWindowTokens == 32_768)
+    #expect(profile.capabilities.supports(.reasoning))
+    #expect(profile.capabilities.contextWindowTokens == 32_768)
     #expect(options.reasoningEffort == .high)
-    #expect(metadata.privacyMode == .localWithUserSelectedContext)
+    #expect(metadata.modelIdentifier == "PrivateCloudComputeLanguageModel")
+    #expect(metadata.privacyMode == .privateCloudCompute)
   }
 
   @Test

@@ -43,7 +43,26 @@ public struct LLMStep<Input: Sendable, Output: Sendable>: Sendable {
     )
 
     try Task.checkCancellation()
-    let result = try await operation(input, context)
+    let result: LLMStepResult<Output>
+    do {
+      result = try await operation(input, context)
+    } catch let error as CancellationError {
+      throw error
+    } catch let error as LLMWorkflowError {
+      throw error
+    } catch {
+      context.appendEvent(
+        LLMWorkflowEvent(
+          kind: .stepFailed,
+          stepID: id,
+          metadata: [
+            "errorType": String(reflecting: type(of: error)),
+            "kind": kind.diagnosticName,
+          ]
+        )
+      )
+      throw LLMWorkflowError(underlyingError: error, stepID: id, context: context)
+    }
     try Task.checkCancellation()
 
     context.apply(result, from: self)

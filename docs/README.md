@@ -20,6 +20,7 @@ Start here for the durable, human-oriented explanation of SwiftLLM.
 14. `13-provider-adapters.md`
 15. `14-wwdc26-readiness.md`
 16. `15-1.0.0-release-notes.md`
+17. `16-2.0.0-release-notes.md`
 
 If you are an agent or want the cheapest route to the right files, use [`../llm/START_HERE.md`](../llm/START_HERE.md).
 
@@ -49,3 +50,4 @@ Temporary notes live in [`../scratch/`](../scratch/). Scratch files are expendab
 | `13-provider-adapters.md` | provider-neutral client API plus Foundation Models, OpenAI, and Anthropic adapter behavior |
 | `14-wwdc26-readiness.md` | WWDC26 Foundation Models, Private Cloud Compute, Dynamic Profiles, provider packages, and Evaluations readiness |
 | `15-1.0.0-release-notes.md` | 1.0.0 release notes, limitations, and validation summary |
+| `16-2.0.0-release-notes.md` | 2.0.0 OS 27 Foundation Models adoption, provider fixes, and validation summary |

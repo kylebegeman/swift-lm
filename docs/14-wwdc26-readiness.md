@@ -2,7 +2,7 @@
 
 SwiftLLM should stay source-compatible with the currently supported SDK while preparing its abstractions for the Foundation Models changes Apple introduced at WWDC26.
 
-This document records the durable conclusions from the WWDC26 transcript pass and official Apple source review. It is planning guidance, not a claim that iOS 27 SDK code is implemented today.
+This document records the durable conclusions from the WWDC26 transcript pass and official Apple source review. SwiftLLM 2.0 implements the session-level OS 27 adoption described here behind an SDK gate; the status section at the end says what shipped and what remains.
 
 ## Source Material
 
@@ -128,30 +128,28 @@ SwiftLLM implication:
 
 ## Planned SwiftLLM Work
 
-Pre-SDK work now implemented:
+Implemented in 2.0:
 
-- Provider-neutral execution target, quota, reasoning, runtime profile, and dynamic context-size models.
-- Endpoint registry and routing plans for local, PCC-ready, provider package, and external fallback ladders.
-- Redacted run receipts that record routing attempts, unsupported capability skips, fallback reasons, token usage, duration, and provider metadata.
-- Token usage fields for cached input tokens and reasoning tokens.
-- Context compiler support for fixed-cost accounting, dropped-snippet diagnostics, and Foundation Models context hints.
-- Docs no longer treat 4,096 tokens as the only Foundation Models context window.
+- Provider-neutral execution target, quota, reasoning, and runtime profile models.
+- `PrivateCloudComputeLanguageModel` support behind the SDK gate and availability checks, including locale support and quota state before a request.
+- Platform-reported `contextSize` for on-device and Private Cloud Compute targets.
+- Apple quota usage mapped into `FoundationModelQuotaStatus`, and quota exhaustion mapped to `FallbackReason.quotaExceeded`.
+- Reasoning levels mapped from `LLMReasoningEffort`, rejected where the resolved model cannot reason.
+- Usage-based token accounting with cached input tokens and reasoning tokens.
+- The OS 27 error taxonomy normalized alongside the OS 26 generation errors.
+- Tool calling modes.
+- Native streaming, plus `LLMStreamEvent.reasoningDelta` and `LLMStreamEvent.usage` for providers that report before completion.
+- Provider-native content replay (`LLMProviderContent`) so reasoning items and thinking blocks survive tool loops.
+- Endpoint registry and routing plans with explicit fallbacks, and run receipts for streaming routes.
+- A showcase panel for Private Cloud Compute availability, context window, reasoning support, and quota.
 
-Pre-SDK work still planned:
+Still planned:
 
-- Richer context snapshots, compaction previews, and cache-aware diagnostics.
-- Stream events for metadata and usage deltas before completion.
-- Tool calling mode and transcript error policy types.
-- Keep all examples compiling on the current SDK.
-
-Post-SDK work:
-
-- Add `PrivateCloudComputeLanguageModel` support behind availability checks.
-- Query `contextSize` dynamically.
-- Map Apple quota usage into SwiftLLM quota status.
-- Map reasoning levels where supported.
-- Add showcase examples for on-device, PCC, and fallback routing.
-- Explore Foundation Models provider bridge support only after the local SDK and open-source package details are stable.
+- Verify the gated code with Xcode 27. The 2.0 implementation follows Apple's documented declarations and compiles against a stub of them, not against the OS 27 SDK.
+- Dynamic Profiles, session reuse, transcript compaction, context snapshots, and cache-aware diagnostics.
+- Transcript error policy types.
+- A `LanguageModel` provider bridge, Core AI and MLX descriptors, image attachments, and watchOS 27 support.
+- Evaluations framework alignment.
 
 ## Non-Goals
 

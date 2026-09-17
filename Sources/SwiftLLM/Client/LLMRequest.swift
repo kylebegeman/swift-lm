@@ -1,8 +1,21 @@
 import Foundation
 
+/// A provider-neutral preference for how much reasoning a model should spend before answering.
+///
+/// Adapters map this onto their own controls: Apple Private Cloud Compute reasoning levels,
+/// OpenAI reasoning effort, or Anthropic adaptive thinking effort. `nil` keeps the provider
+/// default. Requests that set an effort require the `reasoning` capability, so routers skip
+/// clients that cannot honor it instead of silently ignoring it.
+public enum LLMReasoningEffort: String, CaseIterable, Codable, Equatable, Hashable, Sendable {
+  case low
+  case medium
+  case high
+}
+
 /// Sampling and output controls shared by provider adapters.
-public struct LLMGenerationParameters: Equatable, Sendable {
+public struct LLMGenerationParameters: Codable, Equatable, Sendable {
   public var maxOutputTokens: Int?
+  public var reasoningEffort: LLMReasoningEffort?
   public var stopSequences: [String]
   public var temperature: Double?
   public var topP: Double?
@@ -11,9 +24,11 @@ public struct LLMGenerationParameters: Equatable, Sendable {
     temperature: Double? = nil,
     maxOutputTokens: Int? = nil,
     topP: Double? = nil,
-    stopSequences: [String] = []
+    stopSequences: [String] = [],
+    reasoningEffort: LLMReasoningEffort? = nil
   ) {
     self.maxOutputTokens = maxOutputTokens
+    self.reasoningEffort = reasoningEffort
     self.stopSequences = stopSequences
     self.temperature = temperature
     self.topP = topP
@@ -29,7 +44,11 @@ public struct LLMGenerationParameters: Equatable, Sendable {
 
 /// A JSON schema request that can be translated into provider-native structured
 /// output where supported, or prompt instructions where it is not.
-public struct LLMJSONSchema: Equatable, Sendable {
+///
+/// `strict` asks for provider-enforced schema output where the provider offers it. Strict
+/// providers require object schemas with `additionalProperties: false` and every property listed
+/// in `required`.
+public struct LLMJSONSchema: Codable, Equatable, Sendable {
   public var description: String?
   public var name: String
   public var schema: JSONValue
@@ -55,7 +74,7 @@ public enum LLMResponseFormat: Equatable, Sendable {
 }
 
 /// Provider-neutral definition for a callable model tool.
-public struct LLMToolDefinition: Equatable, Sendable {
+public struct LLMToolDefinition: Codable, Equatable, Sendable {
   public var description: String
   public var inputSchema: JSONValue
   public var name: String
@@ -74,9 +93,21 @@ public struct LLMToolDefinition: Equatable, Sendable {
   }
 }
 
+extension LLMToolDefinition {
+  /// Estimated prompt cost of the definition: name, description, and the compact JSON schema.
+  public func estimatedDefinitionTokens(using counter: TokenCounter = .latinHeuristic) -> Int {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+    let schema = (try? encoder.encode(inputSchema)).map { String(decoding: $0, as: UTF8.self) } ?? ""
+    return counter.count(name) + counter.count(description) + counter.count(schema)
+  }
+}
+
 public enum LLMToolChoice: Equatable, Sendable {
   case auto
-  case none
+  /// Prevents tool calls even when tools are attached. Named `noTools` rather than `none` so an
+  /// optional `toolChoice` cannot silently resolve to `Optional.none`.
+  case noTools
   case required
   case tool(String)
 }

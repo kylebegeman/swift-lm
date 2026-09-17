@@ -77,7 +77,7 @@ public struct LLMContextItem: Codable, Equatable, Identifiable, Sendable {
 
 /// Provider-neutral planning data for session context, Foundation Models transcripts, guided
 /// generation schemas, and tool-call style workflows.
-public struct LLMContextPlan: Equatable, Sendable {
+public struct LLMContextPlan: Codable, Equatable, Sendable {
   public var includeGeneratedSchemaInPrompt: Bool
   public var items: [LLMContextItem]
   public var prewarmPromptPrefix: String?
@@ -126,11 +126,18 @@ public struct LLMContextPlan: Equatable, Sendable {
     return capabilities
   }
 
+  /// Estimated tokens for every context item plus tool definitions that are not already listed as
+  /// `toolDefinition` items.
   public func estimatedInputTokens(using counter: TokenCounter = .latinHeuristic) -> Int {
-    items.reduce(0) { $0 + $1.tokenCount(using: counter) }
-      + tools.reduce(0) { total, tool in
-        total + counter.count(tool.name) + counter.count(tool.description) + counter.count(String(describing: tool.inputSchema))
-      }
+    let listedToolIDs = Set(items.filter { $0.surface == .toolDefinition }.map(\.id))
+    return items.reduce(0) { $0 + $1.tokenCount(using: counter) }
+      + tools
+        .filter { !listedToolIDs.contains(Self.toolItemID(for: $0)) }
+        .reduce(0) { $0 + $1.estimatedDefinitionTokens(using: counter) }
+  }
+
+  static func toolItemID(for tool: LLMToolDefinition) -> String {
+    "tool-\(tool.name)"
   }
 
   public func budgetReport(
@@ -175,10 +182,11 @@ public struct LLMContextPlan: Equatable, Sendable {
 
     items += tools.map { tool in
       LLMContextItem(
-        id: "tool-\(tool.name)",
+        id: toolItemID(for: tool),
         surface: .toolDefinition,
         text: "\(tool.name): \(tool.description)",
-        trust: .trustedApp
+        trust: .trustedApp,
+        estimatedTokens: tool.estimatedDefinitionTokens()
       )
     }
 
@@ -193,7 +201,7 @@ public struct LLMContextPlan: Equatable, Sendable {
   }
 }
 
-public struct LLMContextBudgetReport: Equatable, Sendable {
+public struct LLMContextBudgetReport: Codable, Equatable, Sendable {
   public var availableInputTokens: Int
   public var estimatedInputTokens: Int
 

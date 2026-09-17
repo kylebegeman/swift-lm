@@ -22,11 +22,15 @@ This package is shaped by Apple's official Foundation Models documentation:
 
 ## Platform Facts
 
-Foundation Models is available on Apple platforms introduced with iOS, iPadOS, macOS, Mac Catalyst, and visionOS 26.
+Foundation Models is available on Apple platforms introduced with iOS, iPadOS, macOS, Mac Catalyst, and visionOS 26. The OS 27 releases add watchOS through Private Cloud Compute.
 
 The package targets iOS 26, macOS 26, and visionOS 26 because the first useful version is built around Foundation Models and Apple Intelligence-era APIs.
 
-The OS 27 generation expands Foundation Models with Private Cloud Compute, dynamic model context-size APIs, reasoning, image input, Dynamic Profiles, provider packages through `LanguageModel`, Evaluations, `fm`, Python SDK support, Core AI, and MLX integrations. SwiftLLM should prepare provider-neutral types for these concepts while keeping source compatible with the currently supported SDK.
+The OS 27 generation expands Foundation Models with Private Cloud Compute, platform-reported context size, reasoning levels, usage reporting, tool calling modes, image input, Dynamic Profiles, provider packages through `LanguageModel`, a new error taxonomy, Evaluations, `fm`, Python SDK support, Core AI, and MLX integrations. SwiftLLM 2.0 adopts the session-level pieces (Private Cloud Compute, context size, reasoning, usage, tool calling modes, and errors) behind an SDK gate and represents the rest with provider-neutral types.
+
+The gate is `#if compiler(>=6.4) && !SWIFTLLM_OS26_SDK_ONLY`, because Xcode 27 ships Swift 6.4 with the OS 27 SDKs, plus `#available` checks for the 27 releases at runtime. The package builds with Xcode 26 and runs on OS 26 devices; the OS 27 paths activate when the app is built with Xcode 27 and runs on an OS 27 device.
+
+Two OS 27 deprecations matter for adopters: `GenerationOptions(sampling:)` became `GenerationOptions(samplingMode:...)`, and `LanguageModelSession.GenerationError` was replaced by `LanguageModelError`, `SystemLanguageModel.Error`, and `LanguageModelSession.Error`. Apps built with Xcode 27 receive the new error types on OS 27 devices, so the adapter normalizes both generations.
 
 ## Model Availability
 
@@ -69,9 +73,9 @@ SwiftLLM should bias toward narrow tasks and deterministic post-processing. It s
 
 ## Context Window
 
-The OS 26-era on-device foundation model has a 4,096-token context window per language model session.
+The OS 26.0 on-device foundation model has a 4,096-token context window per language model session. Newer releases and hardware report larger sizes, such as 8,192 tokens on the OS 27 releases for newer devices, and Private Cloud Compute provides a 32K context window.
 
-Starting with newer platform releases, apps should not assume a single fixed context size. Apple now exposes context-size APIs on model values such as `SystemLanguageModel` and `PrivateCloudComputeLanguageModel`. Private Cloud Compute provides a 32K context window. Supported on-device context can vary by OS and hardware.
+Apps should not assume a fixed size. `SystemLanguageModel.contextSize` is back-deployed to the OS 26.0 releases, and `PrivateCloudComputeLanguageModel.contextSize` exists on the 27 releases. `FoundationModelClient.runtimeProfile(for:)` reads them, and the provider-neutral `capabilities.contextWindowTokens` follows the reported value. `FoundationModelDefaults.onDeviceContextWindowTokens` and `privateCloudContextWindowTokens` remain only as documented fallbacks for tests and planning.
 
 The context window includes:
 
@@ -84,9 +88,9 @@ The context window includes:
 - model responses
 - session transcript history
 
-This is the main architectural constraint. SwiftLLM should treat token budgeting as a first-class runtime concern, not an afterthought. Future Foundation Models support should query dynamic context size where available and fall back to conservative defaults only when exact information is unavailable.
+This is the main architectural constraint. SwiftLLM treats token budgeting as a first-class runtime concern: the adapter queries the platform context size and falls back to conservative defaults only when the platform cannot report it.
 
-Exact token counting through `SystemLanguageModel.tokenCount(for:)` is available on newer 26.x OS releases. SwiftLLM's Foundation Models adapter exposes an async token-count API and falls back to the core heuristic counter when exact counting is unavailable.
+Exact token counting through `SystemLanguageModel.tokenCount(for:)` is available on the 26.4 releases and later for prompts, instructions, tools, schemas, and transcript entries. The adapter exposes an async token-count API, measures instructions, prompt, and tool definitions after each on-device request, and falls back to the core heuristic counter when exact counting is unavailable. On the 27 releases, Apple's usage reports replace the measurement for every target, including Private Cloud Compute, which has no client-side tokenizer.
 
 ## Private Cloud Compute
 
@@ -104,27 +108,31 @@ Private Cloud Compute gives eligible apps access to a larger Apple Foundation Mo
 
 SwiftLLM should represent PCC as a distinct model locality. It can be privacy-preserving and OS-managed while still being cloud execution. Apps should be able to express policies such as local-only, local-preferred, PCC-allowed, or external-cloud-allowed.
 
-`SwiftLLMFoundationModels` now includes pre-SDK readiness types for this layer:
+`SwiftLLMFoundationModels` implements this layer:
 
-- `FoundationModelExecutionTarget` distinguishes automatic, on-device, Private Cloud Compute, provider package, and custom local execution.
-- `FoundationModelRuntimeProfile` records context window size, dynamic-context support, reasoning support, reasoning effort, and quota status.
-- `FoundationModelQuotaStatus` models quota availability without assuming a particular Apple SDK property name.
-- `FoundationModelGenerationOptions` carries requested execution target, reasoning effort, and requested context-window size. The live adapter ignores fields that cannot be mapped until the OS 27 SDK is available.
+- `FoundationModelExecutionTarget` distinguishes automatic, on-device, Private Cloud Compute, provider package, and custom local execution. `automatic` resolves to the on-device model; Private Cloud Compute is always an explicit choice.
+- `FoundationModelClient.availability(for:)` reports Private Cloud Compute eligibility (`deviceNotEligible`, `systemNotReady`), locale support, and quota exhaustion before a request is made.
+- `FoundationModelRuntimeProfile` records the reported context window, capability flags (reasoning, tool calling, guided generation, vision), and `FoundationModelQuotaStatus` (`available`, `approachingLimit`, `exhausted`, `notApplicable`, `unknown`), mapped from Apple's `quotaUsage`.
+- `FoundationModelGenerationOptions` carries the execution target, `LLMReasoningEffort`, and `FoundationModelToolCallingMode`.
+- `FoundationModelClient.targeting(_:)` returns a client whose provider-neutral conformance uses another target, so apps can register an on-device endpoint and a Private Cloud Compute endpoint in the same `LLMEndpointRegistry`.
+- Quota exhaustion during a request becomes `FoundationModelFailureReason.quotaLimitReached(resetsAt:limitIncreaseSuggestionAvailable:)` and `FallbackReason.quotaExceeded`, which the default router policy treats as retryable so a local endpoint can take over.
+
+Private Cloud Compute requires the managed entitlement from Apple. Eligibility and program membership are product decisions, not package switches.
 
 ## Reasoning
 
 PCC reasoning lets the model spend additional generated text before producing the final answer. The reasoning segment can improve quality, but it consumes context tokens and may increase latency. Deep reasoning can use more tokens than the final answer.
 
-SwiftLLM should model reasoning as:
+SwiftLLM models reasoning as:
 
-- a provider-neutral request preference
-- a budget concern
-- a token-usage field where supported
-- an observable transcript or stream event where the provider exposes it
+- a provider-neutral request preference: `LLMGenerationParameters.reasoningEffort` maps `low`, `medium`, and `high` to Apple's `light`, `moderate`, and `deep` levels
+- a capability: on-device requests that set an effort are rejected as unsupported, so routers fall back instead of silently ignoring the request
+- a token-usage field: `LLMTokenUsage.reasoningTokens` comes from Apple's usage report on the 27 releases
+- observable text: `FoundationModelGenerationResponse.reasoningText` and `LLMResponse.reasoningText` capture the transcript's reasoning entries
 
-Reasoning should not be treated as a free quality upgrade.
+Reasoning should not be treated as a free quality upgrade. It consumes context tokens and adds latency, especially at the deep level.
 
-`LLMTokenUsage`, `LLMTokenUsageReceipt`, and `EvaluationRunMetrics` include optional `cachedInputTokens` and `reasoningTokens` fields so PCC and provider-package usage reports can map into SwiftLLM without changing the public metrics shape later.
+`LLMTokenUsage`, `LLMTokenUsageReceipt`, and `EvaluationRunMetrics` include optional `cachedInputTokens`, `cacheWriteInputTokens`, and `reasoningTokens` fields so every provider's usage report maps into the same metrics shape.
 
 ## Guided Generation
 
@@ -179,7 +187,7 @@ Important transcript rules from WWDC26:
 - Required tool calling needs an exit condition.
 - Preserving transcript state after an error is advanced and requires app repair logic.
 
-SwiftLLM should translate these concepts into context compiler and workflow primitives rather than copying Apple's API surface directly. The package needs app-neutral concepts for context snapshots, compaction previews, cache-aware diagnostics, tool calling mode, and transcript error policy.
+SwiftLLM translates these concepts into context compiler and workflow primitives rather than copying Apple's API surface directly. `FoundationModelToolCallingMode` maps to Apple's tool calling modes on the 27 releases and is rejected on OS 26 SDKs instead of silently allowing tool calls. Dynamic Profiles themselves, context snapshots, compaction previews, and transcript error policy remain future work.
 
 ## Provider Packages
 
@@ -237,7 +245,11 @@ SwiftLLM should support:
 
 The package should not bypass safety controls casually.
 
-The adapter normalizes guardrail, refusal, unsupported-locale, context-window, decoding, rate-limit, concurrent-request, unsupported-guide, asset, tool-call, and generic provider failures into `FoundationModelFailure` and maps each to a package-level `FallbackReason`.
+The adapter normalizes guardrail, refusal, unsupported-locale, context-window, decoding, rate-limit, concurrent-request, unsupported-guide, asset, tool-call, and generic provider failures into `FoundationModelFailure` and maps each to a package-level `FallbackReason`. On the 27 releases it also normalizes timeouts, unsupported capabilities, unsupported transcript content, transcript mutation during a response, Private Cloud Compute quota exhaustion, network failures, and service unavailability. Refusal explanations are captured on both generations when the model provides them.
+
+## Streaming
+
+`FoundationModelClient.stream(_:)` wraps `LanguageModelSession.streamResponse`, turns Apple's cumulative snapshots into text deltas, and ends with a completed response that carries the same usage, reasoning text, and runtime profile as `respond`. The provider-neutral `stream(to:)` uses it, so routers receive real incremental output from the on-device model.
 
 ## Performance
 

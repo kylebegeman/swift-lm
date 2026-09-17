@@ -4,7 +4,6 @@ public struct ModelFallbackMatrixEntry: Codable, Equatable, Identifiable, Sendab
   public var availability: String
   public var failedCaseCount: Int
   public var fallbackReason: String?
-  public var id: String
   public var modelIdentifier: String?
   public var passedCaseCount: Int
   public var providerKind: String
@@ -20,17 +19,16 @@ public struct ModelFallbackMatrixEntry: Codable, Equatable, Identifiable, Sendab
     self.availability = availability
     self.failedCaseCount = failedCaseCount
     self.fallbackReason = fallbackReason
-    self.id = [
-      providerKind,
-      modelIdentifier,
-      availability,
-      fallbackReason,
-    ]
-    .compactMap { $0 }
-    .joined(separator: ":")
     self.modelIdentifier = modelIdentifier
     self.passedCaseCount = passedCaseCount
     self.providerKind = providerKind
+  }
+
+  /// Derived from the entry's fields so it never goes stale after mutation.
+  public var id: String {
+    [providerKind, modelIdentifier, availability, fallbackReason]
+      .compactMap { $0 }
+      .joined(separator: ":")
   }
 }
 

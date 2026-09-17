@@ -118,9 +118,15 @@ public struct LLMEndpointRegistry: Sendable {
     return endpoint.client
   }
 
+  /// Builds a router pinned to `primaryID`.
+  ///
+  /// Fallbacks are explicit: pass `fallbackIDs`, or set
+  /// `usesRemainingEnabledEndpointsAsFallbacks` to opt into every other enabled endpoint. A
+  /// local-only primary never escalates to a cloud endpoint unless the caller asked for it.
   public func router(
     primaryID: LLMEndpointID,
     fallbackIDs: [LLMEndpointID] = [],
+    usesRemainingEnabledEndpointsAsFallbacks: Bool = false,
     fallbackPolicy: LLMRouterFallbackPolicy = .retryable,
     streamFallbackMode: LLMStreamFallbackMode = .beforeFirstOutput,
     runReceiptHandler: (@Sendable (LLMRunReceipt) -> Void)? = nil
@@ -129,7 +135,7 @@ public struct LLMEndpointRegistry: Sendable {
       plan: LLMRoutingPlan(
         primaryID: primaryID,
         fallbackIDs: fallbackIDs,
-        usesRemainingEnabledEndpointsAsFallbacks: fallbackIDs.isEmpty,
+        usesRemainingEnabledEndpointsAsFallbacks: usesRemainingEnabledEndpointsAsFallbacks,
         fallbackPolicy: fallbackPolicy,
         streamFallbackMode: streamFallbackMode,
         runReceiptHandler: runReceiptHandler
@@ -181,7 +187,9 @@ public struct LLMEndpointRegistry: Sendable {
     enabledEndpoints: [LLMEndpoint]
   ) throws -> [LLMEndpoint] {
     if !plan.fallbackIDs.isEmpty {
-      return try plan.fallbackIDs.map { id in
+      var seenIDs: Set<LLMEndpointID> = [primary.id]
+      return try plan.fallbackIDs.compactMap { id in
+        guard seenIDs.insert(id).inserted else { return nil }
         guard let endpoint = endpoint(id: id) else {
           throw LLMEndpointRegistryError.endpointNotFound(id.rawValue)
         }

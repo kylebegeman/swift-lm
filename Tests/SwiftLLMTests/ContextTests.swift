@@ -240,7 +240,8 @@ struct ContextTests {
     #expect(result.fixedInputTokens == 7)
     #expect(result.packedSnippets.map(\.id) == ["required"])
     #expect(result.droppedSnippets.map(\.id) == ["high", "small"])
-    #expect(result.budgetReport.estimatedInputTokens == 13)
+    // 7 fixed tokens plus the rendered citation block, which is larger than the raw snippet.
+    #expect(result.budgetReport.estimatedInputTokens == 15)
     #expect(result.plan.requiredCapabilities.contains(.guidedGeneration))
     #expect(result.compiledPrompt.userPrompt.contains("Retrieved context:"))
     #expect(result.compiledPrompt.userPrompt.contains("[1] Required Source"))

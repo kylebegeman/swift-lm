@@ -238,7 +238,7 @@ struct RouterTests {
 
     #expect(result.response.text == "Tool-capable fallback")
     #expect(result.receipt.attempts.first?.status == .skippedUnsupportedCapabilities)
-    #expect(result.receipt.attempts.first?.unsupportedCapabilities == ["tools"])
+    #expect(result.receipt.attempts.first?.unsupportedCapabilities == ["forcedToolChoice", "tools"])
     #expect(result.receipt.attempts.first?.error?.providerReason == "unsupported")
     #expect(result.receipt.attempts.last?.status == .succeeded)
   }

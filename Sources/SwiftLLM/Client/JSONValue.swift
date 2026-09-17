@@ -49,6 +49,52 @@ extension JSONValue: Codable {
   }
 }
 
+extension JSONValue {
+  public var arrayValue: [JSONValue]? {
+    if case let .array(value) = self { return value }
+    return nil
+  }
+
+  public var boolValue: Bool? {
+    if case let .bool(value) = self { return value }
+    return nil
+  }
+
+  public var isNull: Bool {
+    if case .null = self { return true }
+    return false
+  }
+
+  public var numberValue: Double? {
+    if case let .number(value) = self { return value }
+    return nil
+  }
+
+  public var intValue: Int? {
+    guard let numberValue, numberValue.rounded() == numberValue, abs(numberValue) < Double(Int.max) else { return nil }
+    return Int(numberValue)
+  }
+
+  public var objectValue: [String: JSONValue]? {
+    if case let .object(value) = self { return value }
+    return nil
+  }
+
+  public var stringValue: String? {
+    if case let .string(value) = self { return value }
+    return nil
+  }
+
+  public subscript(key: String) -> JSONValue? {
+    objectValue?[key]
+  }
+
+  public subscript(index: Int) -> JSONValue? {
+    guard let arrayValue, arrayValue.indices.contains(index) else { return nil }
+    return arrayValue[index]
+  }
+}
+
 extension JSONValue: ExpressibleByArrayLiteral {
   public init(arrayLiteral elements: JSONValue...) {
     self = .array(elements)

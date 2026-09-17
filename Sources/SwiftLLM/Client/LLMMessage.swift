@@ -8,6 +8,22 @@ public enum LLMMessageRole: String, Codable, Equatable, Sendable {
   case user
 }
 
+/// Opaque provider-native content an adapter needs to replay verbatim on later turns.
+///
+/// Reasoning models require their reasoning items or thinking blocks to be sent back with tool
+/// results. Adapters store that payload here when they decode a response and replay it when the
+/// same provider encodes the message again. Other providers ignore it and rebuild the message from
+/// `content` and `toolCalls`.
+public struct LLMProviderContent: Codable, Equatable, Sendable {
+  public var payload: JSONValue
+  public var providerKind: LLMProviderKind
+
+  public init(providerKind: LLMProviderKind, payload: JSONValue) {
+    self.payload = payload
+    self.providerKind = providerKind
+  }
+}
+
 /// A single provider-neutral conversation message.
 ///
 /// The type carries both normal chat content and native tool-call history so
@@ -16,6 +32,8 @@ public enum LLMMessageRole: String, Codable, Equatable, Sendable {
 public struct LLMMessage: Codable, Equatable, Sendable {
   public var content: String
   public var name: String?
+  /// Provider-native content to replay verbatim, such as reasoning items or thinking blocks.
+  public var providerContent: LLMProviderContent?
   public var role: LLMMessageRole
   public var toolCalls: [LLMToolCall]
   public var toolCallID: String?
@@ -27,10 +45,12 @@ public struct LLMMessage: Codable, Equatable, Sendable {
     name: String? = nil,
     toolCallID: String? = nil,
     toolCalls: [LLMToolCall] = [],
-    toolResultIsError: Bool = false
+    toolResultIsError: Bool = false,
+    providerContent: LLMProviderContent? = nil
   ) {
     self.content = content
     self.name = name
+    self.providerContent = providerContent
     self.role = role
     self.toolCalls = toolCalls
     self.toolCallID = toolCallID
@@ -39,9 +59,10 @@ public struct LLMMessage: Codable, Equatable, Sendable {
 
   public static func assistant(
     _ content: String,
-    toolCalls: [LLMToolCall] = []
+    toolCalls: [LLMToolCall] = [],
+    providerContent: LLMProviderContent? = nil
   ) -> Self {
-    Self(role: .assistant, content: content, toolCalls: toolCalls)
+    Self(role: .assistant, content: content, toolCalls: toolCalls, providerContent: providerContent)
   }
 
   public static func developer(_ content: String) -> Self {
@@ -73,6 +94,7 @@ public struct LLMMessage: Codable, Equatable, Sendable {
   enum CodingKeys: String, CodingKey {
     case content
     case name
+    case providerContent
     case role
     case toolCallID
     case toolCalls
@@ -83,6 +105,7 @@ public struct LLMMessage: Codable, Equatable, Sendable {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     self.content = try container.decode(String.self, forKey: .content)
     self.name = try container.decodeIfPresent(String.self, forKey: .name)
+    self.providerContent = try container.decodeIfPresent(LLMProviderContent.self, forKey: .providerContent)
     self.role = try container.decode(LLMMessageRole.self, forKey: .role)
     self.toolCallID = try container.decodeIfPresent(String.self, forKey: .toolCallID)
     self.toolCalls = try container.decodeIfPresent([LLMToolCall].self, forKey: .toolCalls) ?? []
@@ -93,6 +116,7 @@ public struct LLMMessage: Codable, Equatable, Sendable {
     var container = encoder.container(keyedBy: CodingKeys.self)
     try container.encode(content, forKey: .content)
     try container.encodeIfPresent(name, forKey: .name)
+    try container.encodeIfPresent(providerContent, forKey: .providerContent)
     try container.encode(role, forKey: .role)
     try container.encodeIfPresent(toolCallID, forKey: .toolCallID)
     if !toolCalls.isEmpty {

@@ -2,18 +2,62 @@ import Foundation
 import SwiftLLM
 
 extension FoundationModelClient: LLMClient {
+  /// Capabilities for the client's default execution target, including the platform-reported
+  /// context window and reasoning support when the resolved model offers it.
   public var capabilities: LLMClientCapabilities {
-    var capabilities = LLMClientCapabilities.foundationModelsProviderNeutral
-    capabilities.contextWindowTokens = FoundationModelDefaults.contextWindowTokens
-    return capabilities
+    runtimeProfile().capabilities
   }
 
   public var metadata: LLMProviderMetadata {
-    FoundationModelDefaults.metadata()
+    FoundationModelDefaults.metadata(executionTarget: defaultExecutionTarget)
   }
 
   public func respond(to request: LLMRequest) async throws -> LLMResponse {
+    let generationRequest = try generationRequest(for: request)
+    let response = try await respond(generationRequest)
+    return Self.response(from: response)
+  }
+
+  public func stream(to request: LLMRequest) -> AsyncThrowingStream<LLMStreamEvent, any Error> {
+    let metadata = metadata(for: request)
+    return AsyncThrowingStream { continuation in
+      continuation.yield(.started(metadata))
+      let task = Task {
+        do {
+          let generationRequest = try generationRequest(for: request)
+          for try await event in streamResponse(generationRequest) {
+            switch event {
+            case let .textDelta(delta):
+              continuation.yield(.textDelta(delta))
+            case let .completed(response):
+              let completed = Self.response(from: response)
+              if let usage = completed.tokenUsage {
+                continuation.yield(.usage(usage))
+              }
+              continuation.yield(.completed(completed))
+            }
+          }
+          continuation.finish()
+        } catch {
+          continuation.finish(throwing: error)
+        }
+      }
+      continuation.onTermination = { _ in
+        task.cancel()
+      }
+    }
+  }
+
+  private func generationRequest(for request: LLMRequest) throws -> FoundationModelGenerationRequest {
     try Self.validateSupportedFeatures(for: request)
+
+    let profile = runtimeProfile()
+    if request.parameters.reasoningEffort != nil, !profile.supportsReasoning {
+      throw LLMClientError(
+        reason: .unsupported,
+        debugDescription: "\(profile.modelIdentifier) does not support reasoning. Leave reasoningEffort nil or target Private Cloud Compute."
+      )
+    }
 
     let responseMetadata = metadata(for: request)
     let prompt = CompiledPrompt(
@@ -27,24 +71,28 @@ extension FoundationModelClient: LLMClient {
       metadata: responseMetadata,
       userPrompt: request.messages.foundationUserPrompt
     )
-    let response = try await respond(
-      FoundationModelGenerationRequest(
-        prompt: prompt,
-        options: FoundationModelGenerationOptions(
-          sampling: request.parameters.temperature == 0 ? .greedy : .systemDefault,
-          temperature: request.parameters.temperature,
-          maximumResponseTokens: request.parameters.maxOutputTokens,
-          includeSchemaInPrompt: true
-        )
-      )
+    return FoundationModelGenerationRequest(
+      prompt: prompt,
+      options: FoundationModelGenerationOptions(
+        sampling: request.parameters.temperature == 0 ? .greedy : .systemDefault,
+        temperature: request.parameters.temperature,
+        maximumResponseTokens: request.parameters.maxOutputTokens,
+        includeSchemaInPrompt: true,
+        executionTarget: defaultExecutionTarget,
+        reasoningEffort: request.parameters.reasoningEffort
+      ),
+      useCase: defaultUseCase
     )
+  }
 
-    return LLMResponse(
+  private static func response(from response: FoundationModelGenerationResponse<String>) -> LLMResponse {
+    LLMResponse(
       text: response.content,
-      finishReason: .stop,
+      finishReason: response.finishReason,
       tokenUsage: response.tokenUsage,
       model: response.metadata.modelIdentifier,
-      metadata: response.metadata
+      metadata: response.metadata,
+      reasoningText: response.reasoningText
     )
   }
 

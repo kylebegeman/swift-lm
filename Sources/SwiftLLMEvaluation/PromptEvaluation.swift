@@ -13,13 +13,13 @@ public enum TextEvaluationAssertion: Equatable, Codable, Sendable {
   ) -> String? {
     switch self {
     case let .contains(value):
-      guard output.localizedCaseInsensitiveContains(value) else {
+      guard output.containsIgnoringCaseAndDiacritics(value) else {
         return "Missing required text: \(value)"
       }
       return nil
 
     case let .excludes(value):
-      guard !output.localizedCaseInsensitiveContains(value) else {
+      guard !output.containsIgnoringCaseAndDiacritics(value) else {
         return "Included forbidden text: \(value)"
       }
       return nil
@@ -46,7 +46,7 @@ public enum TextEvaluationAssertion: Equatable, Codable, Sendable {
   }
 }
 
-public struct PromptEvaluationCase: Equatable, Identifiable, Sendable {
+public struct PromptEvaluationCase: Codable, Equatable, Identifiable, Sendable {
   public var assertions: [TextEvaluationAssertion]
   public var forbiddenSubstrings: [String]
   public var id: String
@@ -102,16 +102,15 @@ public struct PromptEvaluator: Sendable {
     output: String
   ) -> PromptEvaluationResult {
     var failures: [String] = []
-    let lowercasedOutput = output.lowercased()
 
     for required in evaluationCase.requiredSubstrings {
-      if !lowercasedOutput.contains(required.lowercased()) {
+      if !output.containsIgnoringCaseAndDiacritics(required) {
         failures.append("Missing required substring: \(required)")
       }
     }
 
     for forbidden in evaluationCase.forbiddenSubstrings {
-      if lowercasedOutput.contains(forbidden.lowercased()) {
+      if output.containsIgnoringCaseAndDiacritics(forbidden) {
         failures.append("Included forbidden substring: \(forbidden)")
       }
     }

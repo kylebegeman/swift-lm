@@ -1,5 +1,69 @@
 # Changelog
 
+## 2.0.0 - Unreleased
+
+Breaking: this release adopts the OS 27 Foundation Models framework and changes several public APIs. See `docs/16-2.0.0-release-notes.md`.
+
+### Added
+
+- OS 27 Foundation Models support behind an SDK gate: Private Cloud Compute as an execution target, platform-reported context size, reasoning levels, quota status, tool calling modes, usage-based token accounting, and the OS 27 error taxonomy (`LanguageModelError`, `SystemLanguageModel.Error`, `LanguageModelSession.Error`, `PrivateCloudComputeLanguageModel.Error`).
+- Native Foundation Models streaming through `FoundationModelClient.stream(_:)` and `FoundationModelStreamEvent`, and a provider-neutral `stream(to:)` that uses it.
+- `FoundationModelClient.availability(for:)`, `runtimeProfile(for:)`, `targeting(_:)`, `defaultExecutionTarget`, `defaultUseCase`, and `FoundationModelRuntimeProfile.capabilities`.
+- `LLMReasoningEffort` and `LLMGenerationParameters.reasoningEffort`, mapped to Apple reasoning levels, OpenAI `reasoning.effort`, and Anthropic adaptive thinking with `output_config.effort`.
+- `LLMCapability.reasoning` and `LLMCapability.forcedToolChoice`. Routers skip clients that cannot honor them.
+- `LLMStreamEvent.reasoningDelta` and `LLMStreamEvent.usage`.
+- `LLMResponse.reasoningText`, `LLMTokenUsage.cacheWriteInputTokens`, and `LLMTokenUsage.measuredTotalTokens`.
+- `LLMProviderContent` and `LLMMessage.providerContent`, so OpenAI reasoning items and Anthropic thinking blocks replay verbatim in tool loops.
+- `LLMPrivacyMode.privateCloudCompute`.
+- `FallbackReason.quotaExceeded`, `FallbackReason.timeout`, `LLMClientErrorReason.quotaExceeded`, and `LLMClientErrorReason.timeout`. The default router policy retries both.
+- `LLMWorkflowError`, which carries the diagnostics accumulated before a step failed, and the `stepFailed` workflow event.
+- Run receipts for `LLMRouter.stream(to:)`.
+- `LLMEndpointRegistry.router(primaryID:usesRemainingEnabledEndpointsAsFallbacks:)`.
+- OpenAI: `storesResponses` (default `false`), `acceptsSamplingParameters` with model-family defaults, reasoning effort, `response.incomplete` handling, refusal detection, flat stream `error` events, error code classification, encrypted reasoning replay, a ten-minute transport timeout, and `OpenAIHTTPTransport.live(session:)`.
+- Anthropic: version-aware model-family rules (`AnthropicModelFamily`) for sampling, adaptive thinking, summarized thinking display, and forced tool choice; native structured output for strict schemas; opt-in prompt caching; opt-in strict tool schemas; thinking block capture and replay; `stop_reason` mapping for `refusal` and `model_context_window_exceeded`; error type classification; a ten-minute transport timeout; and `AnthropicHTTPTransport.live(session:)`.
+- `JSONValue` accessors: `objectValue`, `arrayValue`, `stringValue`, `numberValue`, `intValue`, `boolValue`, `isNull`, and key and index subscripts.
+- `Codable` on `PromptContract`, `PromptExample`, `LLMProviderMetadata`, `LLMTokenUsage`, `LLMToolDefinition`, `LLMJSONSchema`, `LLMGenerationParameters`, `LLMContextPlan`, `LLMContextBudgetReport`, `EvidenceSource`, `EvidenceSpan`, `StructuredGenerationSourceContext`, `ValidationIssue`, `StructuredGenerationValidationResult`, and `PromptEvaluationCase`.
+- `LLMToolDefinition.estimatedDefinitionTokens(using:)`.
+- A Private Cloud Compute panel in the showcase.
+- Regression tests for every audit fix, the Foundation Models runtime behavior, and the Claude model-family rules. The suite now has 97 tests.
+
+### Changed
+
+- Foundation Models context windows are read from the platform (`contextSize`, back-deployed to the OS 26.0 releases) instead of a hard-coded 4,096.
+- `FoundationModelGenerationOptions` uses `LLMReasoningEffort?`, gains `toolCallingMode`, and drops `requestedContextWindowTokens`.
+- `FoundationModelGenerationResponse` carries `finishReason`, `reasoningText`, and `runtimeProfile`. `estimatedOutputTokens` is a heuristic count of the output rather than the response cap.
+- `FoundationModelQuotaStatus` cases are `available`, `approachingLimit`, `exhausted`, `notApplicable`, and `unknown`.
+- `FoundationModelRuntimeProfile` reports `isContextWindowReported`, `modelIdentifier`, and capability flags. `reasoningEffort` moved to generation options.
+- `FoundationModelFailureReason.contextExceeded` and `rateLimited` carry the context size, token count, and reset date when the platform reports them. New reasons cover quota, network, service, timeout, transcript, and unsupported capability failures.
+- `FoundationModelClient.prewarm` is async because Private Cloud Compute availability is an async platform call.
+- `FoundationModelDefaults.contextWindowTokens` was removed. Use `runtimeProfile(for:)`.
+- `LLMToolChoice.none` is now `LLMToolChoice.noTools`, because an optional `toolChoice: .none` silently resolved to `Optional.none`.
+- Provider SSE parsing dispatches each `data:` line immediately. Live `URLSession` line streams omit blank separators, so the previous parser delivered every event in one burst after the response finished.
+- Provider transports normalize `URLError` into `LLMClientError` so routers can fall back on network failures and timeouts.
+- OpenAI: `stop` is no longer sent (the Responses API has no such parameter) and `.stopSequences` was removed from the OpenAI capabilities; replayed `function_call` items omit `id`; text parts are concatenated without separators; HTTP 408 and 504 map to `timeout`; failed payloads and stream failures classify by error code.
+- Anthropic: `defaultMaxTokens` is 8,192; measured input tokens include cache reads and writes; text blocks are concatenated without separators; empty text blocks and empty assistant turns are omitted; empty tool results omit `content`; streams must end with `message_stop`; tool calls with invalid JSON arguments are dropped; `output_tokens_details.thinking_tokens`, which the API never returned, is gone.
+- `LLMEndpointRegistry.router(primaryID:)` no longer adds every other enabled endpoint as an implicit fallback, and a primary listed in `fallbackIDs` is not attempted twice.
+- `LLMRouter.capabilities.contextWindowTokens` is `nil` when any configured client's window is unknown, and the router checks for cancellation between attempts.
+- `StructuredGenerationPipeline.run` throws, rethrows `CancellationError`, and classifies `LLMFallbackClassifiableError` failures. `StructuredGenerationPipelineResult.output` is `nil` for rejected candidates and `candidateOutput` exposes the raw value.
+- `LLMStep.repairOrFallback` throws when validation rejected the candidate and no fallback resolves, instead of returning the rejected value.
+- `LLMStep.localRetrieval` no longer publishes packed snippets as evidence. They remain grounding sources.
+- `TextChunker` clamps `overlapTokens` to half of `maxTokensPerChunk`.
+- `KeywordLocalRetriever` orders tied chunks by document position instead of lexical id order.
+- `LLMContextCompiler` counts tool schemas as compact JSON and counts the rendered citation block; examples are accounted on the instructions surface. `LLMContextPlan.foundationModelExtraction` no longer double-counts tools.
+- `LocalDebugBundle` enforces its content policy by stripping raw outputs, `PromptVersionEvaluationReport.storesRawOutputs` is derived from its records, and evaluation text matching no longer depends on the device locale.
+- `ModelFallbackMatrixEntry.id` is derived rather than stored.
+- `LLMRunReceiptError` and `LLMWorkflowError` conform to `LocalizedError`.
+- `LLMRequest.requiredCapabilities()` includes `instructions` when the request carries instructions.
+- `RetrievedSnippet` moved to `Retrieval/`, and `ContextPacker` moved to its own file.
+- `scripts/validate.sh` works on Macs with only Command Line Tools: it points `swift test` at the bundled Swift Testing framework and skips the iOS showcase build when Xcode is not selected.
+
+### Removed
+
+- `LLMGenerationRun` and `LLMRunStatus` from 1.x, which nothing produced or consumed.
+- `FoundationModelReasoningEffort`, replaced by `LLMReasoningEffort`.
+- `FoundationModelGenerationRequest.runtimeProfile`. The response reports the resolved profile.
+- `PromptVersionEvaluationReport.init(...storesRawOutputs:)`. The flag is derived.
+
 ## 1.0.0 - 2026-06-24
 
 - Split core client, router, context, retrieval, workflow, structured generation, Foundation Models, evaluation, and test coverage into smaller feature-focused files without changing behavior.

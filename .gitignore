@@ -18,3 +18,8 @@ DerivedData/
 # Editor and OS noise
 *.swp
 *.tmp
+
+# OS 27 stub check copies package sources
+scratch/os27-stub-check/Sources/SwiftLLM/
+scratch/os27-stub-check/Sources/SwiftLLMFoundationModels/
+scratch/os27-stub-check/.build/

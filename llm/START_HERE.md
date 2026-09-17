@@ -14,9 +14,9 @@ Read this before working in SwiftLLM. It gives the shortest route to the relevan
   - `SwiftLLMOpenAI`
   - `SwiftLLMAnthropic`
   - `SwiftLLMEvaluation`
-- Primary language: Swift 6.2.
-- Platforms: iOS 26, macOS 26, visionOS 26.
-- Mission: reliability primitives for local-first Apple language model features.
+- Primary language: Swift 6.2 or newer. Xcode 26 builds the package; Xcode 27 (Swift 6.4) compiles the gated OS 27 paths.
+- Platforms: iOS 26, macOS 26, visionOS 26, with OS 27 Foundation Models features behind `#if compiler(>=6.4)`.
+- Mission: reliability primitives for local-first Apple language model features, from the on-device model to Private Cloud Compute and explicit cloud providers.
 - First incubation app: Chime In.
 - Durable docs: `docs/`.
 - Expendable notes: `scratch/`.

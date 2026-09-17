@@ -1,11 +1,14 @@
 /// A provider feature that can materially change request behavior.
 public enum LLMCapability: String, CaseIterable, Codable, Equatable, Hashable, Sendable {
+  /// The provider honors `toolChoice` values that force a tool call (`required` or a named tool).
+  case forcedToolChoice
   case guidedGeneration
   case instructions
   case jsonObjectResponse
   case jsonSchemaResponse
   case nativeJSONSchemaResponse
   case prewarm
+  case reasoning
   case sessionTranscript
   case stopSequences
   case streaming
@@ -45,6 +48,7 @@ public struct LLMClientCapabilities: Equatable, Sendable {
 
   public static let deterministicLocal = Self(
     supportedFeatures: [
+      .forcedToolChoice,
       .instructions,
       .jsonObjectResponse,
       .jsonSchemaResponse,
@@ -57,6 +61,8 @@ public struct LLMClientCapabilities: Equatable, Sendable {
     ]
   )
 
+  /// The on-device Apple Foundation Models baseline. The live adapter replaces the context window
+  /// with the platform-reported `contextSize` and adds `reasoning` when the resolved model supports it.
   public static let foundationModelsProviderNeutral = Self(
     supportedFeatures: [
       .guidedGeneration,
@@ -71,13 +77,21 @@ public struct LLMClientCapabilities: Equatable, Sendable {
     contextWindowTokens: 4_096
   )
 
+  /// Apple Foundation Models on Private Cloud Compute: the on-device feature set plus reasoning
+  /// and the 32K context window Apple documents for the server model.
+  public static let foundationModelsPrivateCloudCompute = Self(
+    supportedFeatures: Self.foundationModelsProviderNeutral.supportedFeatures.union([.reasoning]),
+    contextWindowTokens: 32_768
+  )
+
   public static let openAIResponses = Self(
     supportedFeatures: [
+      .forcedToolChoice,
       .instructions,
       .jsonObjectResponse,
       .jsonSchemaResponse,
       .nativeJSONSchemaResponse,
-      .stopSequences,
+      .reasoning,
       .streaming,
       .temperature,
       .toolResults,
@@ -88,9 +102,12 @@ public struct LLMClientCapabilities: Equatable, Sendable {
 
   public static let anthropicMessages = Self(
     supportedFeatures: [
+      .forcedToolChoice,
       .instructions,
       .jsonObjectResponse,
       .jsonSchemaResponse,
+      .nativeJSONSchemaResponse,
+      .reasoning,
       .stopSequences,
       .streaming,
       .temperature,
@@ -118,11 +135,19 @@ extension LLMRequest {
       break
     }
 
+    if let instructions, !instructions.isEmpty {
+      capabilities.insert(.instructions)
+    }
+
     if !tools.isEmpty ||
       toolChoice?.requiresToolSupport == true ||
       messages.contains(where: { !$0.toolCalls.isEmpty })
     {
       capabilities.insert(.tools)
+    }
+
+    if toolChoice?.requiresToolSupport == true {
+      capabilities.insert(.forcedToolChoice)
     }
 
     if messages.contains(where: { $0.role == .tool }) {
@@ -141,6 +166,10 @@ extension LLMRequest {
       capabilities.insert(.stopSequences)
     }
 
+    if parameters.reasoningEffort != nil {
+      capabilities.insert(.reasoning)
+    }
+
     if let contextPlan {
       capabilities.formUnion(contextPlan.requiredCapabilities)
     }
@@ -152,7 +181,7 @@ extension LLMRequest {
 extension LLMToolChoice {
   public var requiresToolSupport: Bool {
     switch self {
-    case .auto, .none:
+    case .auto, .noTools:
       return false
     case .required, .tool:
       return true

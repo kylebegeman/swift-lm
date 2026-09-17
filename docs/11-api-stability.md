@@ -4,6 +4,8 @@
 
 SwiftLLM follows semantic versioning from `1.0.0` onward. Public APIs are expected to remain source-compatible across patch and minor releases unless a security or platform compatibility issue leaves no practical alternative.
 
+`2.0.0` is the first major release. It adopts the OS 27 Foundation Models framework and changes the behaviors listed in `CHANGELOG.md`. See `docs/16-2.0.0-release-notes.md` for details.
+
 The package is still young. New functionality should prefer additive APIs, small value types, and explicit provider boundaries so later releases can grow without forcing adopters through broad migrations.
 
 ## Versioning Policy

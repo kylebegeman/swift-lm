@@ -39,7 +39,9 @@ public struct PromptVersionEvaluationReport: Codable, Equatable, Identifiable, S
   public var metrics: EvaluationRunMetrics?
   public var promptID: String
   public var promptVersion: String
-  public var storesRawOutputs: Bool
+  /// Whether any case record carries raw model output. Derived from `caseResults`, so the flag
+  /// can never claim redaction while an output is present.
+  public private(set) var storesRawOutputs: Bool
 
   public init(
     id: String = UUID().uuidString,
@@ -47,7 +49,6 @@ public struct PromptVersionEvaluationReport: Codable, Equatable, Identifiable, S
     promptVersion: String,
     caseResults: [PromptEvaluationResultRecord],
     metrics: EvaluationRunMetrics? = nil,
-    storesRawOutputs: Bool = false,
     createdAt: Date = Date()
   ) {
     self.caseResults = caseResults
@@ -56,7 +57,7 @@ public struct PromptVersionEvaluationReport: Codable, Equatable, Identifiable, S
     self.metrics = metrics
     self.promptID = promptID
     self.promptVersion = promptVersion
-    self.storesRawOutputs = storesRawOutputs
+    self.storesRawOutputs = caseResults.contains { $0.output != nil }
   }
 
   public init(
@@ -73,13 +74,24 @@ public struct PromptVersionEvaluationReport: Codable, Equatable, Identifiable, S
         PromptEvaluationResultRecord(result: $0, includeOutput: includeOutputs)
       },
       metrics: metrics,
-      storesRawOutputs: includeOutputs,
       createdAt: createdAt
     )
   }
 
   public var passed: Bool {
     caseResults.allSatisfy(\.passed)
+  }
+
+  /// A copy with every raw output removed.
+  public func redacted() -> Self {
+    var copy = self
+    copy.caseResults = caseResults.map { record in
+      var record = record
+      record.output = nil
+      return record
+    }
+    copy.storesRawOutputs = false
+    return copy
   }
 
   public func jsonData(prettyPrinted: Bool = true) throws -> Data {

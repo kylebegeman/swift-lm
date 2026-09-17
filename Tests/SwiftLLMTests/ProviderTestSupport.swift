@@ -31,30 +31,6 @@ extension AnthropicHTTPRequest {
   }
 }
 
-// MARK: - JSONValue Accessors
-
-extension JSONValue {
-  var arrayValue: [JSONValue]? {
-    guard case let .array(value) = self else { return nil }
-    return value
-  }
-
-  var boolValue: Bool? {
-    guard case let .bool(value) = self else { return nil }
-    return value
-  }
-
-  var objectValue: [String: JSONValue]? {
-    guard case let .object(value) = self else { return nil }
-    return value
-  }
-
-  var stringValue: String? {
-    guard case let .string(value) = self else { return nil }
-    return value
-  }
-}
-
 // MARK: - Stream Events
 
 extension Array where Element == LLMStreamEvent {
@@ -70,6 +46,13 @@ extension Array where Element == LLMStreamEvent {
     compactMap { event -> LLMProviderKind? in
       guard case let .started(metadata) = event else { return nil }
       return metadata.providerKind
+    }
+  }
+
+  var reasoningDeltas: [String] {
+    compactMap { event -> String? in
+      guard case let .reasoningDelta(delta) = event else { return nil }
+      return delta
     }
   }
 

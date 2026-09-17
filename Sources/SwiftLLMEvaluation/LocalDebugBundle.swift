@@ -6,6 +6,10 @@ public enum LocalDebugBundleContentPolicy: String, Codable, Equatable, Sendable 
   case includesRawOutputs
 }
 
+/// A local, serializable bundle of evaluation reports, fallback matrices, and run receipts.
+///
+/// The content policy is enforced, not just recorded: a `redacted` bundle strips raw outputs from
+/// every prompt report it stores.
 public struct LocalDebugBundle: Codable, Equatable, Identifiable, Sendable {
   public var contentPolicy: LocalDebugBundleContentPolicy
   public var createdAt: Date
@@ -29,7 +33,7 @@ public struct LocalDebugBundle: Codable, Equatable, Identifiable, Sendable {
     self.id = id
     self.modelFallbackMatrix = modelFallbackMatrix
     self.notes = notes
-    self.promptReports = promptReports
+    self.promptReports = contentPolicy == .redacted ? promptReports.map { $0.redacted() } : promptReports
     self.runReceipts = runReceipts
   }
 

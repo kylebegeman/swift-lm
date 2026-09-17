@@ -31,8 +31,19 @@ public struct StructuredGenerationPipelineResult<Output: Sendable>: Sendable {
     self.validation = validation
   }
 
+  /// The value an app may use: the accepted candidate or a resolved fallback. `nil` when
+  /// validation rejected the candidate or generation failed without a fallback.
   public var output: Output? {
-    fallbackDecision?.output ?? candidate?.output
+    if let fallbackOutput = fallbackDecision?.output {
+      return fallbackOutput
+    }
+    return status == .accepted ? candidate?.output : nil
+  }
+
+  /// The generated value even when validation rejected it. Use it for review UI, never as final
+  /// app state.
+  public var candidateOutput: Output? {
+    candidate?.output
   }
 }
 
@@ -51,6 +62,9 @@ public struct StructuredGenerationPipeline<Output: Sendable>: Sendable {
     repairPolicy: StructuredGenerationRepairPolicy<Output> = .none,
     fallbackPolicy: StructuredGenerationFallbackPolicy<Output> = .none,
     errorToFallbackReason: @escaping @Sendable (any Error) -> FallbackReason = { error in
+      if let error = error as? any LLMFallbackClassifiableError {
+        return error.fallbackReason
+      }
       if let error = error as? LLMError {
         return .providerError(error.message)
       }
@@ -64,12 +78,15 @@ public struct StructuredGenerationPipeline<Output: Sendable>: Sendable {
     self.validator = validator
   }
 
+  /// Generates, validates, and resolves fallbacks. Every generation error becomes a result status
+  /// except task cancellation, which is rethrown so callers never persist a fallback for a
+  /// request the user abandoned.
   public func run(
     prompt: CompiledPrompt,
     context: StructuredGenerationSourceContext = StructuredGenerationSourceContext(),
     evidence: @Sendable (Output) -> [EvidenceSpan] = { _ in [] },
     rawOutputDescription: @Sendable (Output) -> String? = { output in String(describing: output) }
-  ) async -> StructuredGenerationPipelineResult<Output> {
+  ) async throws -> StructuredGenerationPipelineResult<Output> {
     do {
       let generated = try await generate(prompt)
       let candidate = StructuredGenerationCandidate(
@@ -104,7 +121,10 @@ public struct StructuredGenerationPipeline<Output: Sendable>: Sendable {
         candidate: candidate,
         validation: validation
       )
+    } catch let error as CancellationError {
+      throw error
     } catch {
+      try Task.checkCancellation()
       let fallbackReason = errorToFallbackReason(error)
       let validation = StructuredGenerationValidationResult(
         issues: [

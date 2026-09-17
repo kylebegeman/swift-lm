@@ -19,7 +19,7 @@ Keep app-specific models, product workflows, UI, account state, and credential s
 Requirements:
 
 - Swift 6.2 or newer
-- Xcode with iOS, macOS, and visionOS 26 SDKs
+- Xcode 26 with the iOS, macOS, and visionOS 26 SDKs; Xcode 27 to compile the OS 27 paths
 - XcodeGen for the optional showcase app
 
 Useful commands:
@@ -56,16 +56,18 @@ swift build -Xswiftc -warnings-as-errors
 
 ## Foundation Models And OS 27 Work
 
-SwiftLLM currently targets the iOS, macOS, and visionOS 26 SDK era. OS 27 work should be added carefully:
+SwiftLLM keeps iOS, macOS, and visionOS 26 as the package minimum and adopts OS 27 APIs behind a gate:
 
-- Keep source compiling on the currently supported SDK.
-- Gate OS 27 APIs with availability checks and conditional compilation as needed.
+- OS 27 symbols live inside `#if compiler(>=6.4) && !SWIFTLLM_OS26_SDK_ONLY` blocks with `#available` checks for the 27 releases, because Xcode 27 ships Swift 6.4 with the OS 27 SDKs. Pass `-Xswiftc -DSWIFTLLM_OS26_SDK_ONLY` to build with a Swift 6.4 toolchain that still uses an OS 26 SDK.
+- Keep source compiling on the OS 26 SDKs and keep every OS 26 code path in place; apps built with Xcode 27 still run on OS 26 devices.
+- Normalize both error generations. Apps built with Xcode 27 receive `LanguageModelError`, `SystemLanguageModel.Error`, and `LanguageModelSession.Error` on OS 27 devices and `LanguageModelSession.GenerationError` on OS 26 devices.
 - Represent new concepts in provider-neutral SwiftLLM types before importing new SDK symbols.
 - Do not hard-code context windows when the platform can report `contextSize`.
-- Treat Private Cloud Compute as networked model execution in policy and diagnostics.
+- Treat Private Cloud Compute as networked model execution in policy and diagnostics, and never let `automatic` escalate to it.
 - Add tests with fake clients before requiring live Apple Intelligence availability.
+- Build with Xcode 27 before changing the gated code. Until it is installed, `scratch/os27-stub-check` compiles the gated path against a stub of Apple's documented API.
 
-Relevant OS 27 concepts include Private Cloud Compute, reasoning levels, quota usage, Dynamic Profiles, `LanguageModel` provider packages, Core AI/MLX local language models, system tools, and the Evaluations framework.
+Remaining OS 27 concepts include Dynamic Profiles, `LanguageModel` provider packages, Core AI and MLX local language models, image attachments, system tools, watchOS 27, and the Evaluations framework.
 
 ## Documentation Rules
 

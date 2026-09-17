@@ -16,6 +16,11 @@ public struct LLMResponse: Equatable, Identifiable, Sendable {
   public var message: LLMMessage
   public var metadata: LLMProviderMetadata
   public var model: String?
+  /// Reasoning or thinking text the provider exposed alongside the answer.
+  ///
+  /// Providers only surface this when the request asked for reasoning and the provider returns it
+  /// as readable text. It is never merged into `text` or `message`.
+  public var reasoningText: String?
   public var text: String
   public var tokenUsage: LLMTokenUsage?
   public var toolCalls: [LLMToolCall]
@@ -28,13 +33,15 @@ public struct LLMResponse: Equatable, Identifiable, Sendable {
     finishReason: LLMFinishReason? = nil,
     tokenUsage: LLMTokenUsage? = nil,
     model: String? = nil,
-    metadata: LLMProviderMetadata
+    metadata: LLMProviderMetadata,
+    reasoningText: String? = nil
   ) {
     self.finishReason = finishReason
     self.id = id
     self.message = message ?? .assistant(text, toolCalls: toolCalls)
     self.metadata = metadata
     self.model = model
+    self.reasoningText = reasoningText
     self.text = text
     self.tokenUsage = tokenUsage
     self.toolCalls = toolCalls
@@ -52,9 +59,15 @@ public struct LLMResponse: Equatable, Identifiable, Sendable {
 /// Streaming lifecycle events emitted by an `LLMClient`.
 public enum LLMStreamEvent: Equatable, Sendable {
   case completed(LLMResponse)
+  /// A fragment of reasoning or thinking text. Providers emit it before answer text when they
+  /// expose reasoning as readable output.
+  case reasoningDelta(String)
   case started(LLMProviderMetadata)
   case textDelta(String)
   case toolCall(LLMToolCall)
+  /// A token usage update reported before completion. The `completed` response carries the
+  /// authoritative usage for the whole request.
+  case usage(LLMTokenUsage)
 }
 
 public enum LLMClientErrorReason: Equatable, Sendable {
@@ -66,7 +79,11 @@ public enum LLMClientErrorReason: Equatable, Sendable {
   case guardrailViolation
   case network
   case provider(String)
+  /// A usage allotment such as a daily request quota or a prepaid balance is exhausted. Unlike a
+  /// rate limit, waiting a few seconds does not help.
+  case quotaExceeded
   case rateLimited
+  case timeout
   case unavailable
   case unsupported
 }
@@ -104,8 +121,12 @@ public struct LLMClientError: LLMFallbackClassifiableError, Equatable, Localized
       return "The provider request failed before a response was received."
     case let .provider(message):
       return message
+    case .quotaExceeded:
+      return "The provider usage quota is exhausted."
     case .rateLimited:
       return "The provider rate-limited the request."
+    case .timeout:
+      return "The provider request timed out."
     case .unavailable:
       return "The provider is unavailable."
     case .unsupported:
@@ -127,8 +148,12 @@ public struct LLMClientError: LLMFallbackClassifiableError, Equatable, Localized
       return .decodingFailed
     case .guardrailViolation:
       return .guardrailViolation
+    case .quotaExceeded:
+      return .quotaExceeded
     case .rateLimited:
       return .rateLimited
+    case .timeout:
+      return .timeout
     case .unavailable:
       return .unavailable
     case .unsupported:

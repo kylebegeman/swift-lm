@@ -9,12 +9,21 @@ struct ShowcaseView: View {
   @State private var ragResult: LocalRAGResult?
 
   private let modelAvailability = FoundationModelClient.live.availability()
+  private let runtimeProfile = FoundationModelClient.live.runtimeProfile()
+  private let privateCloudProfile = FoundationModelClient.live.runtimeProfile(for: .privateCloudCompute)
+  @State private var privateCloudAvailability: FoundationModelAvailability?
   private let providerRows = [
     ProviderRow(
       name: FoundationModelClient.live.metadata.providerDisplayName,
       model: FoundationModelDefaults.metadata().modelIdentifier ?? "SystemLanguageModel.default",
       privacy: "Local only",
       role: "Default offline route"
+    ),
+    ProviderRow(
+      name: "Apple Foundation Models on Private Cloud Compute",
+      model: FoundationModelExecutionTarget.privateCloudCompute.defaultModelIdentifier,
+      privacy: "Private Cloud Compute",
+      role: "Opt-in server model on the OS 27 releases"
     ),
     ProviderRow(
       name: OpenAIClient(apiKey: "provided-at-runtime", model: "configured-openai-model").metadata.providerDisplayName,
@@ -118,9 +127,28 @@ struct ShowcaseView: View {
       List {
         Section("Model") {
           LabeledContent("Provider", value: "Apple Foundation Models")
-          LabeledContent("Default context", value: "\(FoundationModelDefaults.contextWindowTokens) tokens")
+          LabeledContent(
+            "Context window",
+            value: runtimeProfile.contextWindowTokens.map { "\($0) tokens" } ?? "Unknown"
+          )
           LabeledContent("Availability", value: modelAvailability.diagnosticMessage)
           LabeledContent("Privacy", value: "Local only")
+        }
+
+        Section("Private Cloud Compute") {
+          LabeledContent(
+            "Context window",
+            value: privateCloudProfile.contextWindowTokens.map { "\($0) tokens" } ?? "Unknown"
+          )
+          LabeledContent("Reasoning", value: privateCloudProfile.supportsReasoning ? "Supported" : "Unsupported")
+          LabeledContent(
+            "Quota",
+            value: privateCloudProfile.quotaStatus.permitsGeneration ? "Permits generation" : "Exhausted"
+          )
+          LabeledContent(
+            "Availability",
+            value: privateCloudAvailability?.diagnosticMessage ?? "Checking"
+          )
         }
 
         Section("Provider Routing") {
@@ -208,6 +236,7 @@ struct ShowcaseView: View {
       }
       .navigationTitle("SwiftLLM")
       .task {
+        privateCloudAvailability = await FoundationModelClient.live.availability(for: .privateCloudCompute)
         await loadRetrievalPreview()
       }
     }

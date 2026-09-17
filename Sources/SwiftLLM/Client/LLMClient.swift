@@ -14,13 +14,32 @@ extension LLMClient {
     .broadlyCompatible
   }
 
+  /// Bridges `respond(to:)` into the streaming event sequence for clients without native streaming.
   public func stream(to request: LLMRequest) -> AsyncThrowingStream<LLMStreamEvent, any Error> {
+    LLMStreamEvent.stream(metadata: metadata) {
+      try await respond(to: request)
+    }
+  }
+}
+
+extension LLMStreamEvent {
+  /// Emits one complete response as `started`, optional `reasoningDelta`, `textDelta`,
+  /// `toolCall`, and `completed` events.
+  ///
+  /// Adapters without native streaming use this so routers and UI code can treat every client
+  /// uniformly. The task that produces the response is cancelled when the stream is terminated.
+  public static func stream(
+    metadata: LLMProviderMetadata,
+    respond: @escaping @Sendable () async throws -> LLMResponse
+  ) -> AsyncThrowingStream<LLMStreamEvent, any Error> {
     AsyncThrowingStream { continuation in
-      let metadata = self.metadata
       continuation.yield(.started(metadata))
       let task = Task {
         do {
-          let response = try await respond(to: request)
+          let response = try await respond()
+          if let reasoningText = response.reasoningText, !reasoningText.isEmpty {
+            continuation.yield(.reasoningDelta(reasoningText))
+          }
           continuation.yield(.textDelta(response.text))
           for toolCall in response.toolCalls {
             continuation.yield(.toolCall(toolCall))
@@ -66,29 +85,9 @@ public struct AnyLLMClient: LLMClient {
     self.capabilities = capabilities
     self.metadata = metadata
     self.respondHandler = respond
-    if let stream {
-      self.streamHandler = stream
-    } else {
-      self.streamHandler = { request in
-        AsyncThrowingStream { continuation in
-          continuation.yield(.started(metadata))
-          let task = Task {
-            do {
-              let response = try await respond(request)
-              continuation.yield(.textDelta(response.text))
-              for toolCall in response.toolCalls {
-                continuation.yield(.toolCall(toolCall))
-              }
-              continuation.yield(.completed(response))
-              continuation.finish()
-            } catch {
-              continuation.finish(throwing: error)
-            }
-          }
-          continuation.onTermination = { _ in
-            task.cancel()
-          }
-        }
+    self.streamHandler = stream ?? { request in
+      LLMStreamEvent.stream(metadata: metadata) {
+        try await respond(request)
       }
     }
   }

@@ -11,47 +11,33 @@ extension OpenAIClient {
           let httpRequest = try responsesHTTPRequest(for: request, stream: true)
           let streamResponse = try await transport.stream(httpRequest)
           guard 200..<300 ~= streamResponse.statusCode else {
-            throw LLMClientError(
-              reason: Self.errorReason(forStatusCode: streamResponse.statusCode, providerMessage: nil),
-              statusCode: streamResponse.statusCode
-            )
+            throw await Self.streamFailure(streamResponse)
           }
 
-          var accumulatedText = ""
-          var completedResponse: LLMResponse?
-          var dataLines: [String] = []
+          var state = OpenAIStreamState()
+          // Each SSE event carries one JSON object on its `data:` line, so every line is dispatched
+          // as it arrives. Blank separator lines are not required: `URLSession` line streams omit them.
           for try await line in streamResponse.lines {
-            if line.isEmpty {
-              try Self.processStreamDataLines(
-                dataLines,
-                accumulatedText: &accumulatedText,
-                completedResponse: &completedResponse,
-                continuation: continuation,
-                metadata: metadata
-              )
-              dataLines.removeAll(keepingCapacity: true)
-            } else if line.hasPrefix("data:") {
-              dataLines.append(String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces))
+            try Task.checkCancellation()
+            guard let payload = Self.dataPayload(from: line) else { continue }
+            try Self.process(
+              payload,
+              state: &state,
+              continuation: continuation,
+              metadata: metadata
+            )
+            if state.completedResponse != nil {
+              break
             }
           }
 
-          try Self.processStreamDataLines(
-            dataLines,
-            accumulatedText: &accumulatedText,
-            completedResponse: &completedResponse,
-            continuation: continuation,
-            metadata: metadata
-          )
-          continuation.yield(
-            .completed(
-              completedResponse ?? LLMResponse(
-                text: accumulatedText,
-                finishReason: .stop,
-                model: model,
-                metadata: metadata
-              )
+          guard let response = state.completedResponse else {
+            throw LLMClientError(
+              reason: .network,
+              debugDescription: "The OpenAI stream ended before a terminal response event."
             )
-          )
+          }
+          continuation.yield(.completed(response))
           continuation.finish()
         } catch {
           continuation.finish(throwing: error)
@@ -63,40 +49,97 @@ extension OpenAIClient {
     }
   }
 
-  private static func processStreamDataLines(
-    _ dataLines: [String],
-    accumulatedText: inout String,
-    completedResponse: inout LLMResponse?,
+  static func dataPayload(from line: String) -> String? {
+    let trimmed = line.trimmingCharacters(in: .whitespaces)
+    guard trimmed.hasPrefix("data:") else { return nil }
+    let payload = trimmed.dropFirst(5).trimmingCharacters(in: .whitespaces)
+    guard !payload.isEmpty, payload != "[DONE]" else { return nil }
+    return payload
+  }
+
+  private static func streamFailure(_ response: OpenAIHTTPStreamResponse) async -> LLMClientError {
+    var body = ""
+    do {
+      for try await line in response.lines {
+        body += line
+      }
+    } catch {
+      // The status code already describes the failure; the body is only supplementary.
+    }
+    return failure(statusCode: response.statusCode, body: Data(body.utf8))
+  }
+
+  private static func process(
+    _ payload: String,
+    state: inout OpenAIStreamState,
     continuation: AsyncThrowingStream<LLMStreamEvent, any Error>.Continuation,
     metadata: LLMProviderMetadata
   ) throws {
-    // OpenAI Responses streams encode text, tool calls, completion, and failures as typed SSE events.
-    for dataLine in dataLines where dataLine != "[DONE]" && !dataLine.isEmpty {
-      let data = Data(dataLine.utf8)
-      let event = try JSONDecoder.provider.decode(OpenAIStreamEvent.self, from: data)
-      switch event.type {
-      case "response.output_text.delta":
-        if let delta = event.delta {
-          accumulatedText += delta
-          continuation.yield(.textDelta(delta))
-        }
-      case "response.output_item.done":
-        if let toolCall = event.item?.toolCall {
-          continuation.yield(.toolCall(toolCall))
-        }
-      case "response.completed", "response.done":
-        if let response = try event.response?.llmResponse(metadata: metadata) {
-          completedResponse = response
-        }
-      case "error", "response.failed":
-        let message = event.error?.message ?? event.response?.error?.message ?? "OpenAI stream failed."
-        throw LLMClientError(
-          reason: .provider(message),
-          debugDescription: message
-        )
-      default:
-        break
-      }
+    let event: OpenAIStreamEvent
+    do {
+      event = try JSONDecoder.provider.decode(OpenAIStreamEvent.self, from: Data(payload.utf8))
+    } catch {
+      throw LLMClientError(
+        reason: .decoding,
+        debugDescription: "OpenAI stream event decoding failed: \(error.localizedDescription)"
+      )
     }
+
+    switch event.type {
+    case "response.output_text.delta":
+      if let delta = event.delta?.stringValue, !delta.isEmpty {
+        continuation.yield(.textDelta(delta))
+      }
+    case "response.reasoning_summary_text.delta":
+      if let delta = event.delta?.stringValue, !delta.isEmpty {
+        continuation.yield(.reasoningDelta(delta))
+      }
+    case "response.output_item.done":
+      if let toolCall = event.outputItem?.toolCall {
+        continuation.yield(.toolCall(toolCall))
+      }
+    case "response.completed", "response.incomplete":
+      guard let response = event.response else {
+        throw LLMClientError(
+          reason: .decoding,
+          debugDescription: "OpenAI \(event.type ?? "terminal") event did not include a response."
+        )
+      }
+      state.completedResponse = try response.llmResponse(metadata: metadata)
+    case "response.failed":
+      let providerError = event.response?.error ?? event.error
+      throw LLMClientError(
+        reason: errorReason(forStatusCode: nil, providerError: providerError),
+        debugDescription: providerError?.message ?? "OpenAI response failed."
+      )
+    case "error":
+      let providerError = OpenAIProviderError(code: event.code, message: event.message, type: nil)
+      throw LLMClientError(
+        reason: errorReason(forStatusCode: nil, providerError: providerError),
+        debugDescription: event.message ?? "OpenAI stream failed."
+      )
+    default:
+      break
+    }
+  }
+}
+
+private struct OpenAIStreamState {
+  var completedResponse: LLMResponse?
+}
+
+/// A leniently decoded Responses stream event. `delta` is kept as JSON because some event types
+/// carry object deltas rather than text.
+struct OpenAIStreamEvent: Decodable {
+  var code: String?
+  var delta: JSONValue?
+  var error: OpenAIProviderError?
+  var item: JSONValue?
+  var message: String?
+  var response: OpenAIResponsePayload?
+  var type: String?
+
+  var outputItem: OpenAIOutputItem? {
+    item.flatMap(OpenAIOutputItem.init(json:))
   }
 }

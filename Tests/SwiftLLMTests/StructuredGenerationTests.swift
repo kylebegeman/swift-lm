@@ -73,7 +73,7 @@ struct StructuredGenerationTests {
   }
 
   @Test
-  func structuredPipelineAcceptsValidCandidate() async {
+  func structuredPipelineAcceptsValidCandidate() async throws {
     let prompt = CompiledPrompt(
       contract: PromptContract(id: "sample", version: "v1", instructions: "Extract."),
       metadata: FoundationModelDefaults.metadata(promptVersion: "test"),
@@ -96,7 +96,7 @@ struct StructuredGenerationTests {
       ])
     )
 
-    let result = await pipeline.run(
+    let result = try await pipeline.run(
       prompt: prompt,
       context: StructuredGenerationSourceContext(
         sourceText: "Need to review local extraction."
@@ -112,7 +112,7 @@ struct StructuredGenerationTests {
   }
 
   @Test
-  func structuredPipelineFallsBackOnValidationFailure() async {
+  func structuredPipelineFallsBackOnValidationFailure() async throws {
     let prompt = CompiledPrompt(
       contract: PromptContract(id: "sample", version: "v1", instructions: "Extract."),
       metadata: FoundationModelDefaults.metadata(promptVersion: "test"),
@@ -137,7 +137,7 @@ struct StructuredGenerationTests {
       fallbackPolicy: .fixed(fallback)
     )
 
-    let result = await pipeline.run(prompt: prompt)
+    let result = try await pipeline.run(prompt: prompt)
 
     #expect(result.status == .fellBack)
     #expect(result.output == fallback)

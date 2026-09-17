@@ -51,6 +51,9 @@ public struct AnthropicHTTPResponse: Sendable {
 }
 
 /// Streaming HTTP response that yields server-sent-event lines.
+///
+/// Lines are delivered one at a time. Blank separator lines may be omitted, so consumers must
+/// dispatch each `data:` line as it arrives rather than waiting for a blank line.
 public struct AnthropicHTTPStreamResponse: Sendable {
   public var headers: [String: String]
   public var lines: AsyncThrowingStream<String, any Error>
@@ -85,17 +88,33 @@ public struct AnthropicHTTPTransport: Sendable {
     }
   }
 
-  public static let live = Self(
-    send: { request in
-      try await liveSend(request)
-    },
-    stream: { request in
-      try await liveStream(request)
-    }
-  )
+  /// A `URLSession` transport with a ten-minute request timeout, matching the official SDK default.
+  public static let live = live(session: .providerDefault)
 
-  private static func liveSend(_ request: AnthropicHTTPRequest) async throws -> AnthropicHTTPResponse {
-    let (data, response) = try await URLSession.shared.data(for: request.urlRequest())
+  /// A `URLSession` transport using the given session. Network and timeout failures are normalized
+  /// into `LLMClientError` so routers can fall back.
+  public static func live(session: URLSession) -> Self {
+    Self(
+      send: { request in
+        try await liveSend(request, session: session)
+      },
+      stream: { request in
+        try await liveStream(request, session: session)
+      }
+    )
+  }
+
+  private static func liveSend(
+    _ request: AnthropicHTTPRequest,
+    session: URLSession
+  ) async throws -> AnthropicHTTPResponse {
+    let data: Data
+    let response: URLResponse
+    do {
+      (data, response) = try await session.data(for: request.urlRequest())
+    } catch {
+      throw ProviderTransportError.normalize(error, provider: "Anthropic")
+    }
     guard let httpResponse = response as? HTTPURLResponse else {
       throw LLMClientError(reason: .network, debugDescription: "Anthropic returned a non-HTTP response.")
     }
@@ -106,8 +125,17 @@ public struct AnthropicHTTPTransport: Sendable {
     )
   }
 
-  private static func liveStream(_ request: AnthropicHTTPRequest) async throws -> AnthropicHTTPStreamResponse {
-    let (bytes, response) = try await URLSession.shared.bytes(for: request.urlRequest())
+  private static func liveStream(
+    _ request: AnthropicHTTPRequest,
+    session: URLSession
+  ) async throws -> AnthropicHTTPStreamResponse {
+    let bytes: URLSession.AsyncBytes
+    let response: URLResponse
+    do {
+      (bytes, response) = try await session.bytes(for: request.urlRequest())
+    } catch {
+      throw ProviderTransportError.normalize(error, provider: "Anthropic")
+    }
     guard let httpResponse = response as? HTTPURLResponse else {
       throw LLMClientError(reason: .network, debugDescription: "Anthropic returned a non-HTTP response.")
     }
@@ -119,7 +147,7 @@ public struct AnthropicHTTPTransport: Sendable {
           }
           continuation.finish()
         } catch {
-          continuation.finish(throwing: error)
+          continuation.finish(throwing: ProviderTransportError.normalize(error, provider: "Anthropic"))
         }
       }
       continuation.onTermination = { _ in
@@ -142,4 +170,38 @@ private func stringHeaders(from response: HTTPURLResponse) -> [String: String] {
       headers[key] = value
     }
   }
+}
+
+enum ProviderTransportError {
+  /// Maps `URLError` values into `LLMClientError` so the router's fallback policy can classify them.
+  static func normalize(_ error: any Error, provider: String) -> any Error {
+    if error is CancellationError || error is LLMClientError {
+      return error
+    }
+    guard let urlError = error as? URLError else {
+      return LLMClientError(
+        reason: .network,
+        debugDescription: "\(provider) request failed: \(error.localizedDescription)"
+      )
+    }
+    switch urlError.code {
+    case .cancelled:
+      return LLMClientError(reason: .cancelled, debugDescription: urlError.localizedDescription)
+    case .timedOut:
+      return LLMClientError(reason: .timeout, debugDescription: urlError.localizedDescription)
+    default:
+      return LLMClientError(reason: .network, debugDescription: urlError.localizedDescription)
+    }
+  }
+}
+
+extension URLSession {
+  /// A session whose request and resource timeouts allow long generations. The default
+  /// `URLSession.shared` request timeout of 60 seconds is too short for large reasoning responses.
+  static let providerDefault: URLSession = {
+    let configuration = URLSessionConfiguration.default
+    configuration.timeoutIntervalForRequest = 600
+    configuration.timeoutIntervalForResource = 600
+    return URLSession(configuration: configuration)
+  }()
 }

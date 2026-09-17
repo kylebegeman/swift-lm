@@ -6,16 +6,33 @@ extension AnthropicClient {
     for request: LLMRequest,
     stream: Bool
   ) throws -> AnthropicHTTPRequest {
+    try validate(request)
+
+    let nativeSchema = request.responseFormat.anthropicNativeSchema
     let body = AnthropicMessageRequest(
       model: model,
       maxTokens: request.parameters.maxOutputTokens ?? defaultMaxTokens,
       messages: try request.anthropicMessages(),
-      system: request.anthropicSystem,
+      system: request.anthropicSystem(usesNativeSchema: nativeSchema != nil),
       temperature: request.parameters.temperature,
       topP: request.parameters.topP,
       stopSequences: request.parameters.stopSequences.isEmpty ? nil : request.parameters.stopSequences,
-      tools: request.tools.isEmpty ? nil : request.tools.map(AnthropicTool.init),
+      tools: request.tools.isEmpty
+        ? nil
+        : request.tools.map { AnthropicTool($0, forwardsStrict: forwardsStrictToolSchemas) },
       toolChoice: request.toolChoice.map(AnthropicToolChoice.init),
+      thinking: request.parameters.reasoningEffort.map { _ in
+        // Ask for a readable summary where the model hides thinking by default, so reasoning
+        // deltas and `reasoningText` carry content.
+        AnthropicThinkingConfig(
+          display: AnthropicModelFamily.acceptsThinkingDisplay(model: model) ? "summarized" : nil
+        )
+      },
+      outputConfig: AnthropicOutputConfig(
+        effort: request.parameters.reasoningEffort?.rawValue,
+        format: nativeSchema.map(AnthropicOutputFormat.init)
+      ).nilIfEmpty,
+      cacheControl: enablesPromptCaching ? AnthropicCacheControl() : nil,
       stream: stream
     )
     let data = try JSONEncoder.provider.encode(body)
@@ -28,6 +45,35 @@ extension AnthropicClient {
       ],
       body: data
     )
+  }
+
+  private func validate(_ request: LLMRequest) throws {
+    if !acceptsSamplingParameters,
+       request.parameters.temperature != nil || request.parameters.topP != nil
+    {
+      throw LLMClientError(
+        reason: .unsupported,
+        debugDescription: "\(model) does not accept temperature or top_p. Leave them nil for models released after Claude Opus 4.6."
+      )
+    }
+    if request.parameters.reasoningEffort != nil, !supportsReasoningControls {
+      throw LLMClientError(
+        reason: .unsupported,
+        debugDescription: "\(model) does not support adaptive thinking with an effort level."
+      )
+    }
+    if request.toolChoice?.requiresToolSupport == true, !supportsForcedToolChoice {
+      throw LLMClientError(
+        reason: .unsupported,
+        debugDescription: "\(model) does not support forced tool choice. Use .auto with an instruction instead."
+      )
+    }
+    if request.messages.allSatisfy({ $0.role == .system || $0.role == .developer }) {
+      throw LLMClientError(
+        reason: .badRequest,
+        debugDescription: "Anthropic requests need at least one user, assistant, or tool message."
+      )
+    }
   }
 }
 
@@ -43,20 +89,53 @@ private struct AnthropicMessageRequest: Encodable {
   var stopSequences: [String]?
   var tools: [AnthropicTool]?
   var toolChoice: AnthropicToolChoice?
+  var thinking: AnthropicThinkingConfig?
+  var outputConfig: AnthropicOutputConfig?
+  var cacheControl: AnthropicCacheControl?
   var stream: Bool
 
   enum CodingKeys: String, CodingKey {
+    case cacheControl = "cache_control"
     case maxTokens = "max_tokens"
     case messages
     case model
+    case outputConfig = "output_config"
     case stopSequences = "stop_sequences"
     case stream
     case system
     case temperature
+    case thinking
     case toolChoice = "tool_choice"
     case tools
     case topP = "top_p"
   }
+}
+
+private struct AnthropicThinkingConfig: Encodable {
+  var type = "adaptive"
+  var display: String?
+}
+
+private struct AnthropicOutputConfig: Encodable {
+  var effort: String?
+  var format: AnthropicOutputFormat?
+
+  var nilIfEmpty: Self? {
+    effort == nil && format == nil ? nil : self
+  }
+}
+
+private struct AnthropicOutputFormat: Encodable {
+  var schema: JSONValue
+  var type = "json_schema"
+
+  init(_ schema: LLMJSONSchema) {
+    self.schema = schema.schema
+  }
+}
+
+private struct AnthropicCacheControl: Encodable {
+  var type = "ephemeral"
 }
 
 private struct AnthropicMessage: Encodable {
@@ -65,12 +144,15 @@ private struct AnthropicMessage: Encodable {
 }
 
 private enum AnthropicMessageContent: Encodable {
+  case raw(JSONValue)
   case text(String)
   case toolResult(AnthropicToolResultContent)
   case toolUse(AnthropicToolUseContent)
 
   func encode(to encoder: any Encoder) throws {
     switch self {
+    case let .raw(value):
+      try value.encode(to: encoder)
     case let .text(text):
       try AnthropicTextContent(text: text).encode(to: encoder)
     case let .toolResult(result):
@@ -100,7 +182,7 @@ private struct AnthropicToolUseContent: Encodable {
 }
 
 private struct AnthropicToolResultContent: Encodable {
-  var content: String
+  var content: String?
   var isError: Bool?
   var toolUseID: String
   var type = "tool_result"
@@ -114,7 +196,7 @@ private struct AnthropicToolResultContent: Encodable {
         debugDescription: "Anthropic tool result messages require a non-empty toolCallID."
       )
     }
-    self.content = message.content
+    self.content = message.content.isEmpty ? nil : message.content
     self.isError = message.toolResultIsError ? true : nil
     self.toolUseID = toolCallID
   }
@@ -131,17 +213,20 @@ private struct AnthropicTool: Encodable {
   var name: String
   var description: String
   var inputSchema: JSONValue
+  var strict: Bool?
 
-  init(_ definition: LLMToolDefinition) {
+  init(_ definition: LLMToolDefinition, forwardsStrict: Bool) {
     self.description = definition.description
     self.inputSchema = definition.inputSchema
     self.name = definition.name
+    self.strict = forwardsStrict && definition.strict ? true : nil
   }
 
   enum CodingKeys: String, CodingKey {
     case description
     case inputSchema = "input_schema"
     case name
+    case strict
   }
 }
 
@@ -155,7 +240,7 @@ private enum AnthropicToolChoice: Encodable {
     switch choice {
     case .auto:
       self = .auto
-    case .none:
+    case .noTools:
       self = .none
     case .required:
       self = .required
@@ -219,27 +304,32 @@ private extension LLMRequest {
 
         anthropicMessages.append(AnthropicMessage(role: "user", content: content))
       } else {
-        anthropicMessages.append(
-          AnthropicMessage(
-            role: message.role.anthropicRole,
-            content: try message.anthropicContent
+        let content = try message.anthropicContent
+        // The API rejects empty text blocks, so a message with nothing to say is skipped.
+        if !content.isEmpty {
+          anthropicMessages.append(
+            AnthropicMessage(role: message.role.anthropicRole, content: content)
           )
-        )
+        }
         index = conversationalMessages.index(after: index)
       }
     }
 
-    return anthropicMessages.isEmpty
-      ? [AnthropicMessage(role: "user", content: [.text("")])]
-      : anthropicMessages
+    guard !anthropicMessages.isEmpty else {
+      throw LLMClientError(
+        reason: .badRequest,
+        debugDescription: "Anthropic requests need at least one non-empty message."
+      )
+    }
+    return anthropicMessages
   }
 
-  var anthropicSystem: String? {
+  func anthropicSystem(usesNativeSchema: Bool) -> String? {
     let messageInstructions = messages
       .filter { $0.role == .system || $0.role == .developer }
       .map(\.content)
       .joined(separator: "\n\n")
-    let responseInstructions = responseFormat.anthropicSystemInstructions
+    let responseInstructions = usesNativeSchema ? nil : responseFormat.anthropicSystemInstructions
     let system = [instructions, messageInstructions, responseInstructions]
       .compactMap { value in
         guard let value, !value.isEmpty else { return nil }
@@ -255,16 +345,23 @@ private extension LLMMessage {
     get throws {
       switch role {
       case .assistant:
+        if let providerContent,
+           providerContent.providerKind == .anthropic,
+           let blocks = providerContent.payload.arrayValue,
+           !blocks.isEmpty
+        {
+          return blocks.map(AnthropicMessageContent.raw)
+        }
         var content: [AnthropicMessageContent] = []
         if !self.content.isEmpty {
           content.append(.text(self.content))
         }
         content.append(contentsOf: try toolCalls.map { .toolUse(try AnthropicToolUseContent($0)) })
-        return content.isEmpty ? [.text("")] : content
+        return content
       case .tool:
         return try anthropicToolResultContent
       case .developer, .system, .user:
-        return [.text(content)]
+        return content.isEmpty ? [] : [.text(content)]
       }
     }
   }
@@ -304,22 +401,16 @@ private extension LLMMessageRole {
   }
 }
 
-extension String {
-  var anthropicFinishReason: LLMFinishReason {
-    switch self {
-    case "end_turn", "stop_sequence":
-      return .stop
-    case "max_tokens":
-      return .length
-    case "tool_use":
-      return .toolCalls
-    default:
-      return .unknown
-    }
-  }
-}
-
 private extension LLMResponseFormat {
+  /// The schema to send as native structured output. Only strict schemas use the native path,
+  /// because Anthropic enforces the same schema subset as strict tools.
+  var anthropicNativeSchema: LLMJSONSchema? {
+    if case let .jsonSchema(schema) = self, schema.strict {
+      return schema
+    }
+    return nil
+  }
+
   var anthropicSystemInstructions: String? {
     switch self {
     case .text:

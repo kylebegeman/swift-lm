@@ -1,6 +1,6 @@
 import Foundation
 
-public struct EvidenceSource: Equatable, Identifiable, Sendable {
+public struct EvidenceSource: Codable, Equatable, Hashable, Identifiable, Sendable {
   public var displayName: String?
   public var id: String
   public var kind: String?
@@ -19,7 +19,7 @@ public struct EvidenceSource: Equatable, Identifiable, Sendable {
   }
 }
 
-public struct EvidenceSpan: Equatable, Identifiable, Sendable {
+public struct EvidenceSpan: Codable, Equatable, Hashable, Identifiable, Sendable {
   public var characterRange: Range<Int>?
   public var confidence: Double?
   public var id: String
@@ -41,7 +41,7 @@ public struct EvidenceSpan: Equatable, Identifiable, Sendable {
   }
 }
 
-public struct StructuredGenerationSourceContext: Equatable, Sendable {
+public struct StructuredGenerationSourceContext: Codable, Equatable, Sendable {
   public var sources: [EvidenceSource]
 
   public init(sources: [EvidenceSource] = []) {

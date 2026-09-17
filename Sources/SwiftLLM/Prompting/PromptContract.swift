@@ -1,6 +1,6 @@
 import Foundation
 
-public struct PromptContract: Equatable, Identifiable, Sendable {
+public struct PromptContract: Codable, Equatable, Hashable, Identifiable, Sendable {
   public var id: String
   public var instructions: String
   public var responseSchemaDescription: String
@@ -19,7 +19,7 @@ public struct PromptContract: Equatable, Identifiable, Sendable {
   }
 }
 
-public struct PromptExample: Equatable, Identifiable, Sendable {
+public struct PromptExample: Codable, Equatable, Hashable, Identifiable, Sendable {
   public var id: String
   public var input: String
   public var notes: String

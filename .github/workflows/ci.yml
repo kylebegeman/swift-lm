@@ -17,10 +17,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Toolchain
+      - name: Select newest Xcode
         run: |
+          newest="$(ls -d /Applications/Xcode_*.app | sort -V | tail -n 1)"
+          sudo xcode-select -s "$newest"
           swift --version
           xcodebuild -version
+
+      - name: Strict build
+        run: swift build -Xswiftc -warnings-as-errors
 
       - name: Install XcodeGen
         run: brew install xcodegen

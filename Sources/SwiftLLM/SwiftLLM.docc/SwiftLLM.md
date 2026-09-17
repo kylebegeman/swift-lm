@@ -32,7 +32,11 @@ Use this product to:
 - ``LLMStreamFallbackMode``
 - ``LLMRequest``
 - ``LLMResponse``
+- ``LLMStreamEvent``
 - ``LLMMessage``
+- ``LLMProviderContent``
+- ``LLMReasoningEffort``
+- ``LLMGenerationParameters``
 - ``LLMResponseFormat``
 - ``LLMJSONSchema``
 - ``LLMToolDefinition``
@@ -82,6 +86,7 @@ Use this product to:
 - ``LLMWorkflowContext``
 - ``LLMWorkflowResult``
 - ``LLMWorkflowEvent``
+- ``LLMWorkflowError``
 
 ### Validation And Fallback
 
@@ -90,8 +95,11 @@ Use this product to:
 - ``FallbackDecision``
 - ``GenerationCandidate``
 
-### Metadata
+### Metadata And Diagnostics
 
 - ``LLMProviderMetadata``
-- ``LLMGenerationRun``
+- ``LLMPrivacyMode``
 - ``LLMTokenUsage``
+- ``LLMRunReceipt``
+- ``LLMEndpointRegistry``
+- ``JSONValue``

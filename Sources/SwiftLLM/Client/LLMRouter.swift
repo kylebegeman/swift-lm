@@ -21,6 +21,9 @@ public struct LLMRouter: LLMClient {
     self.streamFallbackMode = streamFallbackMode
   }
 
+  /// The union of every configured client's features. The context window is the largest window
+  /// when every client reports one, and `nil` when any client's window is unknown, because a
+  /// request can land on any of them.
   public var capabilities: LLMClientCapabilities {
     let clients = configuredClients
     guard var merged = clients.first?.capabilities else {
@@ -33,7 +36,7 @@ public struct LLMRouter: LLMClient {
       {
         merged.contextWindowTokens = max(current, candidate)
       } else {
-        merged.contextWindowTokens = merged.contextWindowTokens ?? client.capabilities.contextWindowTokens
+        merged.contextWindowTokens = nil
       }
     }
     return merged
@@ -66,6 +69,7 @@ public struct LLMRouter: LLMClient {
     )
 
     for (index, client) in clients.enumerated() {
+      try Task.checkCancellation()
       let remainingFallbackCount = clients.count - index - 1
       let context = fallbackContext(
         client: client,
@@ -78,11 +82,10 @@ public struct LLMRouter: LLMClient {
         streaming: false
       )
       if !unsupportedCapabilities.isEmpty {
-        let unsupportedError = unsupportedCapabilitiesError(
-          for: request,
-          client: client,
-          streaming: false
-        ) ?? LLMClientError(reason: .unsupported)
+        let unsupportedError = Self.unsupportedCapabilitiesError(
+          unsupportedCapabilities,
+          client: client
+        )
         lastError = unsupportedError
         let attemptedAt = Date()
         receipt.attempts.append(
@@ -153,13 +156,36 @@ public struct LLMRouter: LLMClient {
     throw LLMRunReceiptError(underlyingError: error, receipt: receipt)
   }
 
+  /// Streams from the first client that can honor the request, falling back before the first
+  /// output event. Receipts are delivered to `runReceiptHandler` when the stream finishes or fails.
   public func stream(to request: LLMRequest) -> AsyncThrowingStream<LLMStreamEvent, any Error> {
     AsyncThrowingStream { continuation in
       let task = Task {
         let clients = configuredClients
+        let runID = UUID().uuidString
         var lastError: (any Error)?
+        var receipt = LLMRunReceipt(
+          id: runID,
+          request: LLMRunRequestSummary(request: request),
+          startedAt: Date()
+        )
+
+        func finish(with outcome: LLMRunReceiptOutcome, error: (any Error)?) {
+          receipt.completedAt = Date()
+          receipt.outcome = outcome
+          runReceiptHandler?(receipt)
+          if let error {
+            continuation.finish(throwing: error)
+          } else {
+            continuation.finish()
+          }
+        }
 
         for (index, client) in clients.enumerated() {
+          if Task.isCancelled {
+            finish(with: .failed, error: CancellationError())
+            return
+          }
           let remainingFallbackCount = clients.count - index - 1
           let context = fallbackContext(
             client: client,
@@ -167,13 +193,28 @@ public struct LLMRouter: LLMClient {
             attemptIndex: index,
             remainingFallbackCount: remainingFallbackCount
           )
-          let unsupportedError = unsupportedCapabilitiesError(
+          let attemptedAt = Date()
+          let unsupportedCapabilities = client.capabilities.unsupportedCapabilities(
             for: request,
-            client: client,
             streaming: true
           )
-          if let unsupportedError {
+          if !unsupportedCapabilities.isEmpty {
+            let unsupportedError = Self.unsupportedCapabilitiesError(
+              unsupportedCapabilities,
+              client: client
+            )
             lastError = unsupportedError
+            receipt.attempts.append(
+              LLMRunAttemptReceipt(
+                id: "\(runID)-attempt-\(index)",
+                provider: LLMProviderReceiptSnapshot(metadata: client.metadata),
+                startedAt: attemptedAt,
+                completedAt: Date(),
+                status: .skippedUnsupportedCapabilities,
+                unsupportedCapabilities: unsupportedCapabilities.map(\.rawValue).sorted(),
+                error: LLMRunErrorReceipt(error: unsupportedError)
+              )
+            )
             guard shouldAttemptStreamFallback(
               after: unsupportedError,
               context: context,
@@ -181,24 +222,53 @@ public struct LLMRouter: LLMClient {
               emittedOutput: false
             )
             else {
-              continuation.finish(throwing: unsupportedError)
+              finish(with: .failed, error: unsupportedError)
               return
             }
             continue
           }
 
           var emittedOutput = false
+          var completedResponse: LLMResponse?
           do {
             for try await event in client.stream(to: request) {
               if event.isOutput {
                 emittedOutput = true
               }
+              if case let .completed(response) = event {
+                completedResponse = response
+              }
               continuation.yield(event)
             }
-            continuation.finish()
+            let completedAt = Date()
+            receipt.attempts.append(
+              LLMRunAttemptReceipt(
+                id: "\(runID)-attempt-\(index)",
+                provider: LLMProviderReceiptSnapshot(metadata: client.metadata),
+                startedAt: attemptedAt,
+                completedAt: completedAt,
+                status: .succeeded,
+                tokenUsage: completedResponse?.tokenUsage.map(LLMTokenUsageReceipt.init)
+              )
+            )
+            receipt.finalProvider = LLMProviderReceiptSnapshot(
+              metadata: completedResponse?.metadata ?? client.metadata
+            )
+            receipt.tokenUsage = completedResponse?.tokenUsage.map(LLMTokenUsageReceipt.init)
+            finish(with: .succeeded, error: nil)
             return
           } catch {
             lastError = error
+            receipt.attempts.append(
+              LLMRunAttemptReceipt(
+                id: "\(runID)-attempt-\(index)",
+                provider: LLMProviderReceiptSnapshot(metadata: client.metadata),
+                startedAt: attemptedAt,
+                completedAt: Date(),
+                status: .failed,
+                error: LLMRunErrorReceipt(error: error)
+              )
+            )
             guard shouldAttemptStreamFallback(
               after: error,
               context: context,
@@ -206,13 +276,13 @@ public struct LLMRouter: LLMClient {
               emittedOutput: emittedOutput
             )
             else {
-              continuation.finish(throwing: error)
+              finish(with: .failed, error: error)
               return
             }
           }
         }
 
-        continuation.finish(throwing: lastError ?? Self.noProvidersError)
+        finish(with: .failed, error: lastError ?? Self.noProvidersError)
       }
       continuation.onTermination = { _ in
         task.cancel()
@@ -259,18 +329,11 @@ public struct LLMRouter: LLMClient {
     return fallbackPolicy.shouldAttemptFallback(error, context)
   }
 
-  private func unsupportedCapabilitiesError(
-    for request: LLMRequest,
-    client: AnyLLMClient,
-    streaming: Bool
-  ) -> LLMClientError? {
-    let unsupportedCapabilities = client.capabilities.unsupportedCapabilities(
-      for: request,
-      streaming: streaming
-    )
-    guard !unsupportedCapabilities.isEmpty else { return nil }
-
-    return LLMClientError(
+  private static func unsupportedCapabilitiesError(
+    _ unsupportedCapabilities: [LLMCapability],
+    client: AnyLLMClient
+  ) -> LLMClientError {
+    LLMClientError(
       reason: .unsupported,
       debugDescription: """
       \(client.metadata.providerDisplayName) does not support required capabilities: \
@@ -281,11 +344,12 @@ public struct LLMRouter: LLMClient {
 }
 
 private extension LLMStreamEvent {
+  /// Output events mark the point after which the router must not splice in a fallback provider.
   var isOutput: Bool {
     switch self {
-    case .completed, .textDelta, .toolCall:
+    case .completed, .reasoningDelta, .textDelta, .toolCall:
       return true
-    case .started:
+    case .started, .usage:
       return false
     }
   }
