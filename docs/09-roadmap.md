@@ -28,7 +28,7 @@ Build a real adapter around Foundation Models:
 
 Acceptance criteria:
 
-- Chime In can call Foundation Models through SwiftLLM without owning framework-specific error handling.
+- Chime In can call Foundation Models through SwiftLM without owning framework-specific error handling.
 - Tests can exercise unavailable/fallback behavior without importing Foundation Models.
 
 Remaining refinements can happen in later phases: feedback attachment capture, richer token accounting for instructions/schemas/tools, typed diagnostics reports, and live-device tests for native tool-heavy sessions.
@@ -49,7 +49,7 @@ Add generic structured generation support:
 
 Acceptance criteria:
 
-- Chime In extraction prompt compilation can be expressed using SwiftLLM primitives.
+- Chime In extraction prompt compilation can be expressed using SwiftLM primitives.
 - Generated candidates can be validated before becoming Chime In review drafts.
 
 Remaining refinements can happen in later phases: automatic repair loops, richer structured assertion DSLs, source-range helpers for transcript timestamps, and provider-specific schema cost accounting.
@@ -123,13 +123,13 @@ Status: completed for the first public adapter slice.
 
 Add Swift-native provider access that can support local Foundation Models plus explicitly configured external providers:
 
-- provider-neutral `LLMClient` protocol: implemented
-- `LLMRequest`, `LLMResponse`, `LLMMessage`, response formats, tools, tool calls, streaming events, and normalized client errors: implemented
-- provider capability negotiation: implemented through `LLMClientCapabilities`
-- type-erased `AnyLLMClient`: implemented
-- fallback `LLMRouter`: implemented with retryable error policy and before-output streaming fallback
-- high-level `LLMPipeline` over prompt contracts and optional local RAG: implemented
-- Foundation Models conformance to `LLMClient`: implemented
+- provider-neutral `LMClient` protocol: implemented
+- `LMRequest`, `LMResponse`, `LMMessage`, response formats, tools, tool calls, streaming events, and normalized client errors: implemented
+- provider capability negotiation: implemented through `LMClientCapabilities`
+- type-erased `AnyLMClient`: implemented
+- fallback `LMRouter`: implemented with retryable error policy and before-output streaming fallback
+- high-level `LMPipeline` over prompt contracts and optional local RAG: implemented
+- Foundation Models conformance to `LMClient`: implemented
 - OpenAI Responses API adapter: implemented
 - Anthropic Messages API adapter: implemented
 - injectable response and streaming HTTP transports for provider tests: implemented
@@ -149,15 +149,15 @@ Status: completed for the first Chime In adoption slice.
 
 Add a small production orchestration layer over the existing primitives:
 
-- typed sequential workflow runner: implemented through `LLMWorkflow`
-- composable steps: implemented through `LLMStep`
+- typed sequential workflow runner: implemented through `LMWorkflow`
+- composable steps: implemented through `LMStep`
 - deterministic analysis step helper: implemented
 - local retrieval/context packing step helper: implemented through `LocalRAGPipeline`
-- context planning step helper: implemented through `CompiledPrompt` and `LLMContextPlan`
+- context planning step helper: implemented through `CompiledPrompt` and `LMContextPlan`
 - structured generation step helper: implemented through `GenerationCandidate` and `StructuredGenerationCandidate`
 - validation step helper: implemented through `StructuredGenerationValidator`
 - repair/fallback step helper: implemented through `StructuredGenerationRepairPolicy`, `StructuredGenerationFallbackPolicy`, and `FallbackReason`
-- workflow diagnostics: implemented through `LLMWorkflowResult`, `LLMWorkflowEvent`, intermediate output capture, provider metadata, token/context reports, validation issues, evidence spans, and source references
+- workflow diagnostics: implemented through `LMWorkflowResult`, `LMWorkflowEvent`, intermediate output capture, provider metadata, token/context reports, validation issues, evidence spans, and source references
 
 Acceptance criteria:
 
@@ -172,12 +172,12 @@ typed timestamp evidence helpers, richer repair-loop policies, and DocC examples
 
 Status: completed for pre-SDK readiness.
 
-Prepare SwiftLLM for the OS 27 Foundation Models generation and public package adoption without breaking the current SDK baseline:
+Prepare SwiftLM for the OS 27 Foundation Models generation and public package adoption without breaking the current SDK baseline:
 
-- provider-neutral endpoint descriptors for locality and routing policy: implemented through `LLMEndpointRegistry`, `LLMEndpoint`, and `LLMRoutingPlan`
-- Private Cloud Compute readiness through provider-neutral quota, reasoning, and cloud locality types: implemented in `SwiftLLMFoundationModels`
-- context compiler v2 with fixed-cost accounting, retrieved-context packing, dropped snippets, citations, budget reports, and compiled prompts: implemented through `LLMContextCompiler`
-- run receipts for generation routing, fallback, unsupported capability skips, timing, redaction, and token usage: implemented through `LLMRunReceipt`
+- provider-neutral endpoint descriptors for locality and routing policy: implemented through `LMEndpointRegistry`, `LMEndpoint`, and `LMRoutingPlan`
+- Private Cloud Compute readiness through provider-neutral quota, reasoning, and cloud locality types: implemented in `SwiftLMFoundationModels`
+- context compiler v2 with fixed-cost accounting, retrieved-context packing, dropped snippets, citations, budget reports, and compiled prompts: implemented through `LMContextCompiler`
+- run receipts for generation routing, fallback, unsupported capability skips, timing, redaction, and token usage: implemented through `LMRunReceipt`
 - token usage expansion for cached input tokens and reasoning tokens: implemented
 - file organization pass for large source and test files: completed for core client, router, context, retrieval, workflow, structured generation, Foundation Models, evaluation, provider tests, and broad core tests
 - docs and README examples that distinguish shipping APIs from planned SDK-gated work: updated
@@ -185,12 +185,12 @@ Prepare SwiftLLM for the OS 27 Foundation Models generation and public package a
 - stream event expansion for metadata and usage deltas
 - tool calling mode and transcript error policy types
 - Foundation Models OS 27 adapter work after the local SDK is installed
-- Evaluations framework alignment while keeping `SwiftLLMEvaluation` useful without Xcode 27
+- Evaluations framework alignment while keeping `SwiftLMEvaluation` useful without Xcode 27
 - DocC examples
 
 Acceptance criteria:
 
-- SwiftLLM can describe on-device, PCC, external cloud, and local custom-model endpoints without app-specific concepts.
+- SwiftLM can describe on-device, PCC, external cloud, and local custom-model endpoints without app-specific concepts.
 - Context decisions are inspectable through snapshots and receipts.
 - The package remains buildable with the supported SDK until OS 27 symbols are guarded.
 - Apps can make local-first vs cloud-allowed routing decisions with explicit policy.
@@ -203,6 +203,7 @@ Reference:
 
 Status: implemented, pending Xcode 27 verification.
 
+- rename to `swift-lm` with `SwiftLM*` products and `LM*` types: completed
 - Private Cloud Compute execution target, availability, quota, and reasoning levels: implemented behind the OS 27 SDK gate
 - platform-reported context size for on-device and Private Cloud Compute targets: implemented
 - OS 27 error taxonomy and deprecation handling: implemented

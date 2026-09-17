@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a reproducible SwiftLLM bug.
+description: Report a reproducible SwiftLM bug.
 title: "[Bug]: "
 labels:
   - bug
@@ -47,12 +47,12 @@ body:
     attributes:
       label: Product
       options:
-        - SwiftLLM
-        - SwiftLLMFoundationModels
-        - SwiftLLMOpenAI
-        - SwiftLLMAnthropic
-        - SwiftLLMEvaluation
-        - LLMShowcase
+        - SwiftLM
+        - SwiftLMFoundationModels
+        - SwiftLMOpenAI
+        - SwiftLMAnthropic
+        - SwiftLMEvaluation
+        - LMShowcase
         - Documentation
     validations:
       required: true

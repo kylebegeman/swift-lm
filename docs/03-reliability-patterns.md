@@ -17,11 +17,11 @@ user/app input
   -> record metadata and evaluate over time
 ```
 
-SwiftLLM should adapt that pattern to Apple-native, offline workflows.
+SwiftLM should adapt that pattern to Apple-native, offline workflows.
 
 ## Workflow Orchestration
 
-`LLMWorkflow` and `LLMStep` provide a small sequential orchestration layer for this pattern.
+`LMWorkflow` and `LMStep` provide a small sequential orchestration layer for this pattern.
 
 The workflow layer is intentionally not an autonomous agent framework. It does not decide which tools
 to call, store provider credentials, create background workers, or perform hidden model calls. Apps
@@ -31,12 +31,12 @@ Useful step shapes are:
 
 - deterministic analysis before generation
 - local retrieval and context packing through `LocalRAGPipeline`
-- context-plan construction through `LLMContextPlan` and `CompiledPrompt`
+- context-plan construction through `LMContextPlan` and `CompiledPrompt`
 - model generation that returns `GenerationCandidate` or `StructuredGenerationCandidate`
 - validation and grounding through `StructuredGenerationValidator` and `GroundingValidator`
 - repair or deterministic fallback through existing structured-generation policies
 
-`LLMWorkflowResult` preserves final output plus diagnostics needed for production review:
+`LMWorkflowResult` preserves final output plus diagnostics needed for production review:
 
 - captured intermediate outputs when requested
 - provider metadata and token usage
@@ -83,7 +83,7 @@ The contract is more important than an ad hoc prompt string. It gives teams some
 
 Examples help define style and edge behavior, but they are expensive.
 
-SwiftLLM should support compact example selection:
+SwiftLM should support compact example selection:
 
 - use only examples relevant to the current task
 - prefer negative examples for common false positives
@@ -91,7 +91,7 @@ SwiftLLM should support compact example selection:
 - keep example outputs short
 - do not include examples if the schema and instructions are enough
 
-Chime In already has this shape in its extraction example corpus. SwiftLLM should generalize the selection mechanism, not the Chime-specific examples.
+Chime In already has this shape in its extraction example corpus. SwiftLM should generalize the selection mechanism, not the Chime-specific examples.
 
 ## Retrieval Before Generation
 
@@ -108,7 +108,7 @@ Good local sources:
 - app state summaries
 - deterministic search results
 
-Native Foundation Models tools remain useful for model-directed lookup, but SwiftLLM keeps them on the typed `SwiftLLMFoundationModels` API. Provider-neutral workflows should run local retrieval explicitly, add the result to the context plan, and use native tools only when the model genuinely needs to decide whether a lookup is relevant.
+Native Foundation Models tools remain useful for model-directed lookup, but SwiftLM keeps them on the typed `SwiftLMFoundationModels` API. Provider-neutral workflows should run local retrieval explicitly, add the result to the context plan, and use native tools only when the model genuinely needs to decide whether a lookup is relevant.
 
 ## Validation After Generation
 
@@ -140,13 +140,13 @@ GenerationCandidate<Output>
   -> StructuredGenerationPipelineResult<Output>
 ```
 
-Apps still own their final domain drafts. SwiftLLM owns the generic candidate, evidence, validation, repair, and fallback machinery.
+Apps still own their final domain drafts. SwiftLM owns the generic candidate, evidence, validation, repair, and fallback machinery.
 
 ## Grounding
 
 Grounding means generated claims should be supported by the source context.
 
-SwiftLLM should support simple deterministic grounding first:
+SwiftLM should support simple deterministic grounding first:
 
 - exact phrase containment
 - content-word overlap
@@ -179,7 +179,7 @@ Bad retry patterns:
 
 Fallbacks should be part of the design, not an error catch-all.
 
-For provider routing, fallback should be selective. SwiftLLM's router retries retryable conditions such as unavailable providers, rate limits, context limits, unsupported capabilities, unavailable local assets, unsupported local guides/locales, and concurrent local model requests. It intentionally avoids retrying bad requests, authentication failures, guardrail/refusal failures, validation failures, and unknown provider errors by default.
+For provider routing, fallback should be selective. SwiftLM's router retries retryable conditions such as unavailable providers, rate limits, context limits, unsupported capabilities, unavailable local assets, unsupported local guides/locales, and concurrent local model requests. It intentionally avoids retrying bad requests, authentication failures, guardrail/refusal failures, validation failures, and unknown provider errors by default.
 
 Common fallback reasons:
 
@@ -212,4 +212,4 @@ This is especially important for:
 - decisions
 - summaries that might be shared
 
-SwiftLLM should make it easy to preserve provenance and validation reasons so the app can show appropriate review UI.
+SwiftLM should make it easy to preserve provenance and validation reasons so the app can show appropriate review UI.

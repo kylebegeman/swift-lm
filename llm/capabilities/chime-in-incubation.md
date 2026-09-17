@@ -6,7 +6,7 @@ Use this card when a change is motivated by Chime In extraction, transcription, 
 
 ## Boundary
 
-SwiftLLM can own:
+SwiftLM can own:
 
 - prompt contracts
 - provider metadata
@@ -31,10 +31,10 @@ Chime In should keep:
 
 ## Adoption Path
 
-1. Use SwiftLLM metadata and token primitives in Chime In.
+1. Use SwiftLM metadata and token primitives in Chime In.
 2. Route Chime prompt examples through `PromptExample` and `ExampleSelector`.
 3. Use `GroundingValidator` alongside Chime-specific validators.
-4. Move generic evaluation harness pieces into `SwiftLLMEvaluation`.
+4. Move generic evaluation harness pieces into `SwiftLMEvaluation`.
 5. Keep app-specific extraction rules in Chime In until they prove reusable.
 
 ## Source Of Truth
@@ -44,7 +44,7 @@ Chime In should keep:
 
 ## Common Failure Modes
 
-- Pulling Chime-specific models into public SwiftLLM APIs.
+- Pulling Chime-specific models into public SwiftLM APIs.
 - Changing Chime In behavior without an integration test or evaluation case.
 - Treating Chime In's current extraction corpus as a generic public fixture.
 

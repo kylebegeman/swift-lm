@@ -20,6 +20,6 @@ DerivedData/
 *.tmp
 
 # OS 27 stub check copies package sources
-scratch/os27-stub-check/Sources/SwiftLLM/
-scratch/os27-stub-check/Sources/SwiftLLMFoundationModels/
+scratch/os27-stub-check/Sources/SwiftLM/
+scratch/os27-stub-check/Sources/SwiftLMFoundationModels/
 scratch/os27-stub-check/.build/

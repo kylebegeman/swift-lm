@@ -36,7 +36,7 @@ if ! command -v xcodegen >/dev/null 2>&1; then
   exit 0
 fi
 
-xcodegen generate --spec Examples/LLMShowcase/project.yml
+xcodegen generate --spec Examples/LMShowcase/project.yml
 
 if ! xcodebuild -version >/dev/null 2>&1; then
   echo "Skipping the showcase build because Xcode is not selected (developer directory: ${developer_dir:-none})."
@@ -44,8 +44,8 @@ if ! xcodebuild -version >/dev/null 2>&1; then
 fi
 
 xcodebuild \
-  -project Examples/LLMShowcase/LLMShowcase.xcodeproj \
-  -scheme LLMShowcase \
+  -project Examples/LMShowcase/LMShowcase.xcodeproj \
+  -scheme LMShowcase \
   -destination 'generic/platform=iOS Simulator' \
   CODE_SIGNING_ALLOWED=NO \
   build

@@ -1,0 +1,52 @@
+name: LMShowcase
+options:
+  bundleIdPrefix: com.example
+  createIntermediateGroups: true
+packages:
+  SwiftLMPackage:
+    path: ../..
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+targets:
+  LMShowcase:
+    type: application
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: LMShowcase
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.LMShowcase
+        PRODUCT_NAME: LMShowcase
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: LMShowcase
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        SWIFT_EMIT_LOC_STRINGS: YES
+    dependencies:
+      - package: SwiftLMPackage
+        product: SwiftLM
+      - package: SwiftLMPackage
+        product: SwiftLMFoundationModels
+      - package: SwiftLMPackage
+        product: SwiftLMOpenAI
+      - package: SwiftLMPackage
+        product: SwiftLMAnthropic
+      - package: SwiftLMPackage
+        product: SwiftLMEvaluation
+schemes:
+  LMShowcase:
+    build:
+      targets:
+        LMShowcase: all
+    run:
+      config: Debug
+    archive:
+      config: Release

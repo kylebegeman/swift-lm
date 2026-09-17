@@ -1,6 +1,6 @@
 # Security Policy
 
-SwiftLLM is a local-first Swift package. The core target has no network access, no telemetry, and no credential persistence. Security issues still matter because this package can sit near prompts, transcripts, local documents, provider adapters, and debug output.
+SwiftLM is a local-first Swift package. The core target has no network access, no telemetry, and no credential persistence. Security issues still matter because this package can sit near prompts, transcripts, local documents, provider adapters, and debug output.
 
 ## Supported Versions
 
@@ -15,14 +15,14 @@ SwiftLLM is a local-first Swift package. The core target has no network access, 
 
 Please report vulnerabilities through GitHub Security Advisories:
 
-https://github.com/kylebegeman/swift-llm/security/advisories/new
+https://github.com/kylebegeman/swift-lm/security/advisories/new
 
 Do not open a public issue for a vulnerability until it has been triaged.
 
 Useful reports include:
 
 - affected package version or commit
-- target product, such as `SwiftLLM`, `SwiftLLMFoundationModels`, `SwiftLLMOpenAI`, or `SwiftLLMAnthropic`
+- target product, such as `SwiftLM`, `SwiftLMFoundationModels`, `SwiftLMOpenAI`, or `SwiftLMAnthropic`
 - platform and toolchain
 - reproduction steps
 - expected impact
@@ -51,12 +51,12 @@ Generally out of scope:
 ## Security Principles
 
 - No telemetry by default.
-- No network access in `SwiftLLM`.
+- No network access in `SwiftLM`.
 - Provider adapters must be explicit opt-in products.
-- API keys are app-owned runtime inputs and should not be committed, logged, or persisted by SwiftLLM.
+- API keys are app-owned runtime inputs and should not be committed, logged, or persisted by SwiftLM.
 - Raw prompts, transcripts, outputs, tool results, and provider payloads should not be stored by default.
 - Debug bundles should be local and redacted unless the caller explicitly chooses a less restrictive content policy.
-- Foundation Models behavior should remain isolated to `SwiftLLMFoundationModels`.
+- Foundation Models behavior should remain isolated to `SwiftLMFoundationModels`.
 - Private Cloud Compute and external cloud usage should be represented as networked execution in app policy, even when the provider offers strong privacy guarantees. The Foundation Models adapter never routes a request to Private Cloud Compute unless the app targets it explicitly.
 - OpenAI responses are not stored server-side unless the app opts in with `storesResponses`.
 
@@ -73,7 +73,7 @@ Generally out of scope:
 Examples, tests, docs, and issue reports should use placeholders for credentials:
 
 ```swift
-let client = AnyLLMClient.openAI(
+let client = AnyLMClient.openAI(
   apiKey: "<runtime-api-key>",
   model: "example-model"
 )

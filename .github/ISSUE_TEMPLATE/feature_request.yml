@@ -19,7 +19,7 @@ body:
     id: proposal
     attributes:
       label: Proposal
-      description: What API or behavior should SwiftLLM provide?
+      description: What API or behavior should SwiftLM provide?
     validations:
       required: true
   - type: dropdown

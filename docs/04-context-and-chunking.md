@@ -104,7 +104,7 @@ Source-diverse packing interleaves high-scoring snippets from different sources 
 
 ## Context Compiler
 
-`LLMContextCompiler` is the reusable assembly step for prompt contracts,
+`LMContextCompiler` is the reusable assembly step for prompt contracts,
 examples, user input, retrieved snippets, tool metadata, session policy, and
 Foundation Models context hints.
 
@@ -114,11 +114,11 @@ The compiler:
 - reserves those fixed tokens before packing retrieved snippets
 - renders packed snippets with citation markers
 - returns the dropped snippets for debugging and UI feedback
-- builds the `LLMContextPlan` used by provider-neutral requests
+- builds the `LMContextPlan` used by provider-neutral requests
 - builds a `CompiledPrompt` whose user prompt includes retrieved context when requested
 - returns a context budget report and source context for structured validation
 
-`LLMPipeline` uses `LLMContextCompiler` internally. Apps can also call the
+`LMPipeline` uses `LMContextCompiler` internally. Apps can also call the
 compiler directly when they need to preview context pressure, show dropped
 snippets, or preflight a request. Pass the platform-reported context window from
 `FoundationModelClient.runtimeProfile(for:)` as the `TokenBudget.contextLimit`
@@ -136,6 +136,6 @@ For Chime In, the long transcript strategy should be:
 6. Produce an editable review draft with provider metadata.
 7. Persist only after user verification.
 
-SwiftLLM should own steps 1, 2 orchestration, 4 helpers, and 5 orchestration. Chime In should own the final review draft model and persistence.
+SwiftLM should own steps 1, 2 orchestration, 4 helpers, and 5 orchestration. Chime In should own the final review draft model and persistence.
 
 The Phase 3 implementation now covers steps 1, 2 orchestration, and generic merge helpers. Chime In still needs domain-specific merge policies for tasks, dates, and decisions.

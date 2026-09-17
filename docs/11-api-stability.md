@@ -2,9 +2,9 @@
 
 ## Current Stability Level
 
-SwiftLLM follows semantic versioning from `1.0.0` onward. Public APIs are expected to remain source-compatible across patch and minor releases unless a security or platform compatibility issue leaves no practical alternative.
+SwiftLM follows semantic versioning from `1.0.0` onward. Public APIs are expected to remain source-compatible across patch and minor releases unless a security or platform compatibility issue leaves no practical alternative.
 
-`2.0.0` is the first major release. It adopts the OS 27 Foundation Models framework and changes the behaviors listed in `CHANGELOG.md`. See `docs/16-2.0.0-release-notes.md` for details.
+`2.0.0` is the first major release. It renames the package and every `LLM*` type to `LM*`, adopts the OS 27 Foundation Models framework, and changes the behaviors listed in `CHANGELOG.md`. The migration is mechanical; see `docs/16-2.0.0-release-notes.md`.
 
 The package is still young. New functionality should prefer additive APIs, small value types, and explicit provider boundaries so later releases can grow without forcing adopters through broad migrations.
 
@@ -46,7 +46,7 @@ These are useful but should remain easy to revise:
 - redacted run receipts
 - context compiler
 - structured generation pipeline
-- workflow orchestration primitives (`LLMWorkflow`, `LLMStep`, `LLMWorkflowResult`, and workflow diagnostics)
+- workflow orchestration primitives (`LMWorkflow`, `LMStep`, `LMWorkflowResult`, and workflow diagnostics)
 - transcript chunking
 - local RAG pipeline
 - context packing strategies

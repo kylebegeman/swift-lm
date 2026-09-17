@@ -1,18 +1,18 @@
 # Contributing
 
-Thanks for helping improve SwiftLLM. This package is meant to stay small, app-neutral, local-first by default, and explicit about every provider boundary.
+Thanks for helping improve SwiftLM. This package is meant to stay small, app-neutral, local-first by default, and explicit about every provider boundary.
 
 ## Project Shape
 
-SwiftLLM is split into focused products:
+SwiftLM is split into focused products:
 
-- `SwiftLLM`: core prompt, context, retrieval, validation, workflow, routing, and metadata primitives
-- `SwiftLLMFoundationModels`: the only target that imports Apple's Foundation Models framework
-- `SwiftLLMOpenAI`: OpenAI Responses API adapter
-- `SwiftLLMAnthropic`: Anthropic Messages API adapter
-- `SwiftLLMEvaluation`: prompt evaluation, report, and diagnostics utilities
+- `SwiftLM`: core prompt, context, retrieval, validation, workflow, routing, and metadata primitives
+- `SwiftLMFoundationModels`: the only target that imports Apple's Foundation Models framework
+- `SwiftLMOpenAI`: OpenAI Responses API adapter
+- `SwiftLMAnthropic`: Anthropic Messages API adapter
+- `SwiftLMEvaluation`: prompt evaluation, report, and diagnostics utilities
 
-Keep app-specific models, product workflows, UI, account state, and credential storage outside this package unless a durable design doc promotes a generic primitive into SwiftLLM.
+Keep app-specific models, product workflows, UI, account state, and credential storage outside this package unless a durable design doc promotes a generic primitive into SwiftLM.
 
 ## Local Setup
 
@@ -35,8 +35,8 @@ swift build -Xswiftc -warnings-as-errors
 
 ## Development Rules
 
-- Keep `SwiftLLM` free of app-specific concepts.
-- Keep `SwiftLLMFoundationModels` as the only target that imports `FoundationModels`.
+- Keep `SwiftLM` free of app-specific concepts.
+- Keep `SwiftLMFoundationModels` as the only target that imports `FoundationModels`.
 - Keep provider HTTP translation inside provider adapter targets.
 - Do not add API key persistence, token refresh, sign-in flows, or credential policy to the package. Apps own that boundary.
 - Do not add telemetry or background network behavior.
@@ -56,12 +56,12 @@ swift build -Xswiftc -warnings-as-errors
 
 ## Foundation Models And OS 27 Work
 
-SwiftLLM keeps iOS, macOS, and visionOS 26 as the package minimum and adopts OS 27 APIs behind a gate:
+SwiftLM keeps iOS, macOS, and visionOS 26 as the package minimum and adopts OS 27 APIs behind a gate:
 
-- OS 27 symbols live inside `#if compiler(>=6.4) && !SWIFTLLM_OS26_SDK_ONLY` blocks with `#available` checks for the 27 releases, because Xcode 27 ships Swift 6.4 with the OS 27 SDKs. Pass `-Xswiftc -DSWIFTLLM_OS26_SDK_ONLY` to build with a Swift 6.4 toolchain that still uses an OS 26 SDK.
+- OS 27 symbols live inside `#if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY` blocks with `#available` checks for the 27 releases, because Xcode 27 ships Swift 6.4 with the OS 27 SDKs. Pass `-Xswiftc -DSWIFTLM_OS26_SDK_ONLY` to build with a Swift 6.4 toolchain that still uses an OS 26 SDK.
 - Keep source compiling on the OS 26 SDKs and keep every OS 26 code path in place; apps built with Xcode 27 still run on OS 26 devices.
 - Normalize both error generations. Apps built with Xcode 27 receive `LanguageModelError`, `SystemLanguageModel.Error`, and `LanguageModelSession.Error` on OS 27 devices and `LanguageModelSession.GenerationError` on OS 26 devices.
-- Represent new concepts in provider-neutral SwiftLLM types before importing new SDK symbols.
+- Represent new concepts in provider-neutral SwiftLM types before importing new SDK symbols.
 - Do not hard-code context windows when the platform can report `contextSize`.
 - Treat Private Cloud Compute as networked model execution in policy and diagnostics, and never let `automatic` escalate to it.
 - Add tests with fake clients before requiring live Apple Intelligence availability.
@@ -113,7 +113,7 @@ For security or privacy issues, use [SECURITY.md](SECURITY.md) instead of a publ
 
 ## Release Discipline
 
-SwiftLLM follows semantic versioning from `1.0.0` onward. Source-breaking changes should be reserved for major versions unless a security or platform compatibility issue leaves no practical alternative.
+SwiftLM follows semantic versioning from `1.0.0` onward. Source-breaking changes should be reserved for major versions unless a security or platform compatibility issue leaves no practical alternative.
 
 Follow:
 

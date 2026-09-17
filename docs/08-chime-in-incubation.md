@@ -2,7 +2,7 @@
 
 ## Role
 
-Chime In is the first real-world proving ground for SwiftLLM.
+Chime In is the first real-world proving ground for SwiftLM.
 
 The product promise is private, offline voice capture with structured understanding. That makes it an ideal stress test for local model orchestration:
 
@@ -32,25 +32,25 @@ The migration should be incremental. Do not yank app code into the package whole
 
 ## Proposed First Adoption Path
 
-1. Add SwiftLLM as a local package dependency in Chime In.
-2. Replace Chime In's generic provider metadata with `LLMProviderMetadata`.
+1. Add SwiftLM as a local package dependency in Chime In.
+2. Replace Chime In's generic provider metadata with `LMProviderMetadata`.
 3. Use `TokenBudget`, `TokenCounter`, and `TextChunker` for long transcript planning.
 4. Move recording transcript segmentation through `TranscriptSegment` and `TranscriptChunker` at the extraction boundary.
 5. Use `PromptContract`, `PromptExample`, and `ExampleSelector` underneath Chime In's extraction prompt compiler.
 6. Use `GroundingValidator` where Chime In currently checks whether generated candidates are supported by transcript text.
 7. Wrap model output in `StructuredGenerationCandidate` with Chime transcript evidence spans.
-8. Run generic validators from SwiftLLM before applying Chime-specific task/date/decision validation.
+8. Run generic validators from SwiftLM before applying Chime-specific task/date/decision validation.
 9. Use `MapReducePipeline` for long recordings once per-chunk extraction is wired.
 10. Use `LocalRetriever` and `LocalRAGPipeline` at the boundary for local question-answering or cross-recording recall, while keeping the actual Chime storage/index implementation in Chime In.
-11. Compose the extraction path with `LLMWorkflow`:
+11. Compose the extraction path with `LMWorkflow`:
     deterministic transcript hints -> local retrieval -> context plan -> structured generation ->
     grounding validation -> deterministic fallback.
-12. Move reusable evaluation harness logic into `SwiftLLMEvaluation`, using `PromptVersionEvaluationReport` and `LocalDebugBundle` for local prompt-change reviews.
+12. Move reusable evaluation harness logic into `SwiftLMEvaluation`, using `PromptVersionEvaluationReport` and `LocalDebugBundle` for local prompt-change reviews.
 13. Keep `RecordingReviewDraft` and Chime-specific validators in Chime In.
 
 ## Keep In Chime In
 
-These should not move into SwiftLLM:
+These should not move into SwiftLM:
 
 - recording persistence
 - transcript segment schema
@@ -62,7 +62,7 @@ These should not move into SwiftLLM:
 - Chime In design system
 - product-specific privacy copy
 
-## Graduate To SwiftLLM
+## Graduate To SwiftLM
 
 These can move when they are app-neutral:
 
@@ -97,4 +97,4 @@ The package should be tested against:
 - model-ready delays
 - validation failures
 
-Every package primitive that Chime In adopts should have a unit test in SwiftLLM and an integration or feature test in Chime In when product behavior changes.
+Every package primitive that Chime In adopts should have a unit test in SwiftLM and an integration or feature test in Chime In when product behavior changes.

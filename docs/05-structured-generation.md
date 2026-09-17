@@ -4,7 +4,7 @@
 
 Structured generation should convert messy text into predictable Swift values while preserving enough evidence for validation and review.
 
-Apple's guided generation gives the package the typed response mechanism. SwiftLLM should provide the reliability layer around it.
+Apple's guided generation gives the package the typed response mechanism. SwiftLM should provide the reliability layer around it.
 
 ## Current Toolkit
 
@@ -79,7 +79,7 @@ generated candidate
   -> persistence/export
 ```
 
-SwiftLLM should own candidate metadata, validation primitives, and generic filtering. Apps should own final draft types.
+SwiftLM should own candidate metadata, validation primitives, and generic filtering. Apps should own final draft types.
 
 `StructuredGenerationPipeline` now provides this shape for any `Sendable` output. A generator closure produces a `GenerationCandidate<Output>`, the pipeline wraps it with evidence, runs validators, and returns accepted, rejected, failed, or fallback status with metadata intact.
 
@@ -125,4 +125,4 @@ Untrusted user or document text must not be placed in instructions. It belongs i
 
 Instructions are trusted policy. User content is data.
 
-SwiftLLM prompt APIs should keep this distinction visible.
+SwiftLM prompt APIs should keep this distinction visible.

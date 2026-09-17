@@ -1,4 +1,4 @@
-// A stub of the OS 27 FoundationModels API surface used by SwiftLLMFoundationModels, transcribed
+// A stub of the OS 27 FoundationModels API surface used by SwiftLMFoundationModels, transcribed
 // from Apple's documentation. Only the declarations the adapter touches are present.
 import Foundation
 

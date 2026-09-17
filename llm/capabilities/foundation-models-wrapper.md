@@ -15,7 +15,7 @@ Use this card for availability, locale support, guided generation, tool calling,
 
 ## Current Package Shape
 
-`SwiftLLMFoundationModels` currently owns:
+`SwiftLMFoundationModels` currently owns:
 
 - `FoundationModelAvailability`
 - `FoundationModelClient` (closures for availability, target availability, runtime profile, token counting, prewarm, respond, and stream)
@@ -29,20 +29,20 @@ Use this card for availability, locale support, guided generation, tool calling,
 - `FoundationModelToolConfiguration` when `FoundationModels` is importable
 - `FoundationModelFailure`
 - `FoundationModelErrorNormalizer`
-- core `LLMContextPlan` metadata for instructions, prompt payloads, guided generation schemas,
+- core `LMContextPlan` metadata for instructions, prompt payloads, guided generation schemas,
   transcript rehydration, prewarm prefixes, and tool definitions
 
 It is the typed adapter layer for availability, runtime profiles, token counting, prewarming, text
 generation, streaming, guided generation and native tool calls where `FoundationModels` is
 importable, context-plan budgeting, error normalization for both the OS 26 and OS 27 error
 generations, and Private Cloud Compute execution with quota and reasoning mapping. OS 27 symbols
-sit behind `#if compiler(>=6.4) && !SWIFTLLM_OS26_SDK_ONLY` in `FoundationModelLive.swift`.
+sit behind `#if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY` in `FoundationModelLive.swift`.
 Dynamic Profiles, session reuse, and the provider bridge are future work.
 
 ## Source Of Truth
 
 - Durable package docs: `../../docs/02-foundation-models-reference.md`
-- Current code: `Sources/SwiftLLMFoundationModels/`
+- Current code: `Sources/SwiftLMFoundationModels/`
 
 ## Common Failure Modes
 

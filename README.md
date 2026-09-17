@@ -1,11 +1,11 @@
-# SwiftLLM
+# SwiftLM
 
 [![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/platforms-iOS%2026%20%7C%20macOS%2026%20%7C%20visionOS%2026-lightgrey.svg)](#requirements)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE.md)
-[![CI](https://github.com/kylebegeman/swift-llm/actions/workflows/ci.yml/badge.svg)](https://github.com/kylebegeman/swift-llm/actions/workflows/ci.yml)
+[![CI](https://github.com/kylebegeman/swift-lm/actions/workflows/ci.yml/badge.svg)](https://github.com/kylebegeman/swift-lm/actions/workflows/ci.yml)
 
-SwiftLLM is a Swift-native reliability layer for local-first language model features on Apple platforms. It works with language models of every size: Apple's on-device model, Apple Foundation Models on Private Cloud Compute, and explicitly configured cloud providers.
+SwiftLM is a Swift-native reliability layer for local-first language model features on Apple platforms. It works with language models of every size: Apple's on-device model, Apple Foundation Models on Private Cloud Compute, and explicitly configured cloud providers.
 
 It helps you build AI features where the hard parts are explicit: prompt contracts, token budgets, context packing, local retrieval, structured generation, validation, fallback, provider routing, and evaluation. The core package has no network access and no telemetry. External providers live in opt-in adapter targets.
 
@@ -22,30 +22,30 @@ Apple's Foundation Models framework makes on-device language model features poss
 - model behavior needs evaluation
 - diagnostics need redaction
 
-SwiftLLM keeps those concerns app-neutral so each app does not rebuild the same machinery.
+SwiftLM keeps those concerns app-neutral so each app does not rebuild the same machinery.
 
 ## What Ships
 
 | Product | Use it for |
 |---|---|
-| `SwiftLLM` | Core prompt, context, RAG, validation, workflow, router, metadata, and client primitives |
-| `SwiftLLMFoundationModels` | Apple Foundation Models availability, token counting, prewarming, typed generation, native tools, and error normalization |
-| `SwiftLLMOpenAI` | OpenAI Responses API adapter with injectable response and streaming transport |
-| `SwiftLLMAnthropic` | Anthropic Messages API adapter with injectable response and streaming transport |
-| `SwiftLLMEvaluation` | Prompt regression, structured output assertions, fallback matrices, and local debug bundles |
+| `SwiftLM` | Core prompt, context, RAG, validation, workflow, router, metadata, and client primitives |
+| `SwiftLMFoundationModels` | Apple Foundation Models availability, token counting, prewarming, typed generation, native tools, and error normalization |
+| `SwiftLMOpenAI` | OpenAI Responses API adapter with injectable response and streaming transport |
+| `SwiftLMAnthropic` | Anthropic Messages API adapter with injectable response and streaming transport |
+| `SwiftLMEvaluation` | Prompt regression, structured output assertions, fallback matrices, and local debug bundles |
 
 ```mermaid
 flowchart LR
-  App["App feature"] --> Core["SwiftLLM"]
+  App["App feature"] --> Core["SwiftLM"]
   Core --> Prompt["Prompt contracts"]
   Core --> Context["Context budget and packing"]
   Core --> RAG["Local RAG and citations"]
   Core --> Validation["Validation and repair"]
   Core --> Router["Capability-aware router"]
-  Router --> FM["SwiftLLMFoundationModels"]
-  Router --> OpenAI["SwiftLLMOpenAI"]
-  Router --> Anthropic["SwiftLLMAnthropic"]
-  Core --> Eval["SwiftLLMEvaluation"]
+  Router --> FM["SwiftLMFoundationModels"]
+  Router --> OpenAI["SwiftLMOpenAI"]
+  Router --> Anthropic["SwiftLMAnthropic"]
+  Core --> Eval["SwiftLMEvaluation"]
 ```
 
 ## Requirements
@@ -63,7 +63,7 @@ Add the package with Swift Package Manager:
 
 ```swift
 dependencies: [
-  .package(url: "https://github.com/kylebegeman/swift-llm.git", from: "2.0.0")
+  .package(url: "https://github.com/kylebegeman/swift-lm.git", from: "2.0.0")
 ]
 ```
 
@@ -73,8 +73,8 @@ Then add only the products you need:
 .target(
   name: "YourApp",
   dependencies: [
-    .product(name: "SwiftLLM", package: "swift-llm"),
-    .product(name: "SwiftLLMFoundationModels", package: "swift-llm")
+    .product(name: "SwiftLM", package: "swift-lm"),
+    .product(name: "SwiftLMFoundationModels", package: "swift-lm")
   ]
 )
 ```
@@ -86,17 +86,17 @@ During active development, pin to the `next` branch only when you intentionally 
 Use the on-device Foundation Models adapter directly:
 
 ```swift
-import SwiftLLM
-import SwiftLLMFoundationModels
+import SwiftLM
+import SwiftLMFoundationModels
 
 let client = FoundationModelClient.live
 
 guard client.availability().isAvailable else {
-  throw LLMClientError(reason: .unavailable)
+  throw LMClientError(reason: .unavailable)
 }
 
 let response = try await client.respond(
-  to: LLMRequest(
+  to: LMRequest(
     instructions: "Summarize the note in one sentence.",
     messages: [.user(noteText)],
     parameters: .init(maxOutputTokens: 120)
@@ -115,7 +115,7 @@ let profile = privateCloud.runtimeProfile()
 
 if availability.isAvailable, profile.quotaStatus.permitsGeneration {
   let response = try await privateCloud.respond(
-    to: LLMRequest(
+    to: LMRequest(
       instructions: "Analyze the document and list the open questions.",
       messages: [.user(documentText)],
       parameters: .init(maxOutputTokens: 800, reasoningEffort: .medium)
@@ -128,22 +128,22 @@ if availability.isAvailable, profile.quotaStatus.permitsGeneration {
 Route across local and explicitly configured provider-backed clients:
 
 ```swift
-import SwiftLLM
-import SwiftLLMAnthropic
-import SwiftLLMFoundationModels
-import SwiftLLMOpenAI
+import SwiftLM
+import SwiftLMAnthropic
+import SwiftLMFoundationModels
+import SwiftLMOpenAI
 
-let local = AnyLLMClient(FoundationModelClient.live)
-let openAI = AnyLLMClient.openAI(apiKey: openAIKey, model: "your-openai-model")
-let anthropic = AnyLLMClient.anthropic(apiKey: anthropicKey, model: "your-anthropic-model")
+let local = AnyLMClient(FoundationModelClient.live)
+let openAI = AnyLMClient.openAI(apiKey: openAIKey, model: "your-openai-model")
+let anthropic = AnyLMClient.anthropic(apiKey: anthropicKey, model: "your-anthropic-model")
 
-let client = LLMRouter(
+let client = LMRouter(
   primary: local,
   fallbacks: [openAI, anthropic]
 )
 
 let response = try await client.respond(
-  to: LLMRequest(
+  to: LMRequest(
     instructions: "Extract the decision, owner, and due date.",
     messages: [.user(meetingNote)],
     responseFormat: .jsonObject,
@@ -152,11 +152,11 @@ let response = try await client.respond(
 )
 ```
 
-API keys are provided by your app at runtime. SwiftLLM does not define a key storage policy and does not persist credentials.
+API keys are provided by your app at runtime. SwiftLM does not define a key storage policy and does not persist credentials.
 
 Routing is capability-aware. Current Claude and GPT reasoning models reject `temperature`, so a request with `.deterministic` parameters skips those adapters instead of failing; leave sampling parameters nil for reasoning models and use `reasoningEffort` to control depth. OpenAI responses are not stored server-side unless you opt in.
 
-For larger apps, register already-created clients with `LLMEndpointRegistry` and
+For larger apps, register already-created clients with `LMEndpointRegistry` and
 build routers from endpoint IDs, priorities, enabled state, and routing plans.
 The registry stores client handles and routing metadata, not provider secrets.
 
@@ -178,7 +178,7 @@ let prompt = CompiledPrompt(
   userPrompt: noteText
 )
 
-let response = try await client.respond(to: LLMRequest(prompt: prompt))
+let response = try await client.respond(to: LMRequest(prompt: prompt))
 ```
 
 ## Context Budgeting
@@ -210,13 +210,13 @@ let packer = ContextPacker(
 let packed = packer.pack(snippets: snippets, reservedInputTokens: 300)
 ```
 
-Use `LLMContextCompiler` when you want the package to assemble the full prompt
+Use `LMContextCompiler` when you want the package to assemble the full prompt
 plan: instructions, examples, user input, retrieved snippets, schema text, tool
 metadata, budget reporting, and dropped-snippet diagnostics.
 
 ## Local RAG
 
-SwiftLLM includes dependency-free retrieval primitives. Apps can bring their own index, SQLite store, Spotlight search, embeddings, or document pipeline by conforming to `LocalRetriever`.
+SwiftLM includes dependency-free retrieval primitives. Apps can bring their own index, SQLite store, Spotlight search, embeddings, or document pipeline by conforming to `LocalRetriever`.
 
 ```mermaid
 flowchart TD
@@ -225,7 +225,7 @@ flowchart TD
   Snippets --> Packer["ContextPacker"]
   Packer --> Renderer["CitationContextRenderer"]
   Renderer --> Prompt["Grounded prompt context"]
-  Prompt --> Model["LLMClient"]
+  Prompt --> Model["LMClient"]
   Model --> Validator["GroundingValidator"]
 ```
 
@@ -233,10 +233,10 @@ The built-in `KeywordLocalRetriever` is intentionally simple and deterministic. 
 
 ## Workflows
 
-`LLMWorkflow` composes app-owned steps without creating a hidden autonomous agent:
+`LMWorkflow` composes app-owned steps without creating a hidden autonomous agent:
 
 ```swift
-let workflow = LLMWorkflow(detectHints)
+let workflow = LMWorkflow(detectHints)
   .then(retrieveLocalContext)
   .then(buildPromptPlan)
   .then(generateCandidate)
@@ -248,10 +248,10 @@ Workflow results can carry events, intermediate outputs, context budget reports,
 
 ## Evaluation
 
-Use `SwiftLLMEvaluation` to keep prompt behavior visible as models and prompts change:
+Use `SwiftLMEvaluation` to keep prompt behavior visible as models and prompts change:
 
 ```swift
-import SwiftLLMEvaluation
+import SwiftLMEvaluation
 
 let evaluationCase = PromptEvaluationCase(
   id: "summary-keeps-owner",
@@ -268,31 +268,31 @@ let result = PromptEvaluator().evaluate(
 precondition(result.passed, result.failures.joined(separator: "\n"))
 ```
 
-`LLMRunReceipt` and `LocalDebugBundle` give apps a redacted way to inspect provider attempts, fallback reasons, duration, and token usage without storing prompt or response text.
+`LMRunReceipt` and `LocalDebugBundle` give apps a redacted way to inspect provider attempts, fallback reasons, duration, and token usage without storing prompt or response text.
 
 ## Provider Boundaries
 
-SwiftLLM is designed around explicit boundaries:
+SwiftLM is designed around explicit boundaries:
 
 | Boundary | Package posture |
 |---|---|
 | Core package | No network access, no telemetry, no provider keys |
-| Foundation Models | Isolated to `SwiftLLMFoundationModels` |
+| Foundation Models | Isolated to `SwiftLMFoundationModels` |
 | OpenAI and Anthropic | Opt-in adapter products |
-| API keys | App-owned, runtime-provided, never persisted by SwiftLLM |
+| API keys | App-owned, runtime-provided, never persisted by SwiftLM |
 | Native Apple tools | Typed Foundation Models API only |
 | Provider-neutral tools | Request/response shapes only, no hidden local execution |
 | Diagnostics | Local and redacted by default |
 
-Native Foundation Models `Tool` values stay on the typed `SwiftLLMFoundationModels` API. Provider-neutral requests intentionally reject local tool execution unless an app calls the Foundation-specific wrapper with concrete `[any Tool]` values.
+Native Foundation Models `Tool` values stay on the typed `SwiftLMFoundationModels` API. Provider-neutral requests intentionally reject local tool execution unless an app calls the Foundation-specific wrapper with concrete `[any Tool]` values.
 
 ## OS 27 Support
 
-SwiftLLM 2.0 adopts the OS 27 Foundation Models framework:
+SwiftLM 2.0 adopts the OS 27 Foundation Models framework:
 
 - Private Cloud Compute through `FoundationModelExecutionTarget.privateCloudCompute`, with availability, locale, and quota checks before each request
 - platform-reported `contextSize` for on-device and server models
-- reasoning levels through `LLMGenerationParameters.reasoningEffort`, with reasoning text and reasoning token accounting
+- reasoning levels through `LMGenerationParameters.reasoningEffort`, with reasoning text and reasoning token accounting
 - quota status mapped to `FoundationModelQuotaStatus` and `FallbackReason.quotaExceeded`, so a router can fall back to the on-device model when a daily limit is reached
 - tool calling modes, usage reporting, and the OS 27 error taxonomy
 - native streaming on every supported release
@@ -313,8 +313,8 @@ flowchart LR
 The repository includes an XcodeGen iOS showcase shell:
 
 ```sh
-xcodegen generate --spec Examples/LLMShowcase/project.yml
-open Examples/LLMShowcase/LLMShowcase.xcodeproj
+xcodegen generate --spec Examples/LMShowcase/project.yml
+open Examples/LMShowcase/LMShowcase.xcodeproj
 ```
 
 Generated `.xcodeproj` files are intentionally ignored.
@@ -355,8 +355,8 @@ Agents should start at [llm/START_HERE.md](llm/START_HERE.md).
 
 ## Contributing
 
-Contributions should keep SwiftLLM app-neutral, local-first by default, and explicit about provider boundaries. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions should keep SwiftLM app-neutral, local-first by default, and explicit about provider boundaries. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-SwiftLLM is released under the [Apache License 2.0](LICENSE.md).
+SwiftLM is released under the [Apache License 2.0](LICENSE.md).

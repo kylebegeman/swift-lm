@@ -3,18 +3,18 @@
 ## Repository Structure
 
 ```text
-swift-llm/
+swift-lm/
 ├── Package.swift
 ├── Sources/
-│   ├── SwiftLLM/                    # Core app-neutral primitives
-│   ├── SwiftLLMFoundationModels/    # Apple Foundation Models integration
-│   ├── SwiftLLMOpenAI/              # OpenAI Responses API integration
-│   ├── SwiftLLMAnthropic/           # Anthropic Messages API integration
-│   └── SwiftLLMEvaluation/          # Prompt and output evaluation
+│   ├── SwiftLM/                    # Core app-neutral primitives
+│   ├── SwiftLMFoundationModels/    # Apple Foundation Models integration
+│   ├── SwiftLMOpenAI/              # OpenAI Responses API integration
+│   ├── SwiftLMAnthropic/           # Anthropic Messages API integration
+│   └── SwiftLMEvaluation/          # Prompt and output evaluation
 ├── Tests/
-│   └── SwiftLLMTests/
+│   └── SwiftLMTests/
 ├── Examples/
-│   └── LLMShowcase/                 # XcodeGen iOS showcase app
+│   └── LMShowcase/                 # XcodeGen iOS showcase app
 ├── docs/                            # Durable human docs
 ├── llm/                             # Compact agent routing docs
 └── scratch/                         # Expendable working notes
@@ -23,32 +23,32 @@ swift-llm/
 ## Target Dependency Graph
 
 ```text
-SwiftLLMEvaluation
-    └── SwiftLLM
+SwiftLMEvaluation
+    └── SwiftLM
 
-SwiftLLMFoundationModels
-    └── SwiftLLM
+SwiftLMFoundationModels
+    └── SwiftLM
     └── FoundationModels when available
 
-SwiftLLMOpenAI
-    └── SwiftLLM
+SwiftLMOpenAI
+    └── SwiftLM
 
-SwiftLLMAnthropic
-    └── SwiftLLM
+SwiftLMAnthropic
+    └── SwiftLM
 
-SwiftLLM
+SwiftLM
     └── Foundation
 ```
 
 The core package does not import Foundation Models. That keeps the core abstractions testable, portable across Apple SDK configurations, and usable in deterministic fallback paths.
 
-## `SwiftLLM`
+## `SwiftLM`
 
-`SwiftLLM` owns primitives that should be useful even if the model is unavailable:
+`SwiftLM` owns primitives that should be useful even if the model is unavailable:
 
 - provider and run metadata
 - provider-neutral request, response, streaming event, tool, and response-format types
-- `LLMClient`, `AnyLLMClient`, provider capabilities, and `LLMRouter`
+- `LMClient`, `AnyLMClient`, provider capabilities, and `LMRouter`
 - prompt contracts
 - examples and example selection
 - token budgeting
@@ -75,9 +75,9 @@ The core package does not import Foundation Models. That keeps the core abstract
 
 This target must stay app-neutral. It should not know about Chime In recordings, Reminders, Calendar, SQLiteData, TCA, or external provider keys.
 
-## `SwiftLLMFoundationModels`
+## `SwiftLMFoundationModels`
 
-`SwiftLLMFoundationModels` is the only package target that should import Apple's `FoundationModels` framework.
+`SwiftLMFoundationModels` is the only package target that should import Apple's `FoundationModels` framework.
 
 It should grow into:
 
@@ -93,16 +93,16 @@ It should grow into:
 
 The first adapter slice now includes availability normalization, a token-count API with heuristic fallback when exact token counting is unavailable, prewarming, text generation, a typed guided generation entrypoint when `FoundationModels` can be imported, normalized error/fallback types, and fakeable closures for tests.
 
-This target should continue to normalize Foundation Models behavior into core SwiftLLM types instead of leaking every framework detail into app code.
+This target should continue to normalize Foundation Models behavior into core SwiftLM types instead of leaking every framework detail into app code.
 
-## `SwiftLLMOpenAI`
+## `SwiftLMOpenAI`
 
-`SwiftLLMOpenAI` adapts the OpenAI Responses API into the core `LLMClient` protocol.
+`SwiftLMOpenAI` adapts the OpenAI Responses API into the core `LMClient` protocol.
 
 It includes:
 
 - `OpenAIClient`
-- request translation from `LLMRequest`
+- request translation from `LMRequest`
 - text, JSON object, JSON schema, tool definition, and tool choice encoding
 - response parsing for `output_text`, message content, function calls, and token usage
 - native tool-call and `function_call_output` history encoding
@@ -111,9 +111,9 @@ It includes:
 
 This target does not persist API keys or define credential policy. Apps provide credentials at initialization time and own any Keychain, environment, or settings behavior.
 
-## `SwiftLLMAnthropic`
+## `SwiftLMAnthropic`
 
-`SwiftLLMAnthropic` adapts the Anthropic Messages API into the core `LLMClient` protocol.
+`SwiftLMAnthropic` adapts the Anthropic Messages API into the core `LMClient` protocol.
 
 It includes:
 
@@ -128,9 +128,9 @@ It includes:
 
 This target is intentionally parallel to the OpenAI adapter so provider behavior stays visible instead of becoming a hidden abstraction layer.
 
-## `SwiftLLMEvaluation`
+## `SwiftLMEvaluation`
 
-`SwiftLLMEvaluation` owns test and QA primitives:
+`SwiftLMEvaluation` owns test and QA primitives:
 
 - golden corpus records
 - required/forbidden substring assertions
@@ -143,7 +143,7 @@ The first evaluation slice includes text assertions, structured output assertion
 
 ## Example App
 
-`Examples/LLMShowcase` is generated with XcodeGen. It should demonstrate package primitives in small, inspectable workflows:
+`Examples/LMShowcase` is generated with XcodeGen. It should demonstrate package primitives in small, inspectable workflows:
 
 - model availability
 - provider metadata and routing options
@@ -180,7 +180,7 @@ Chime In should own:
 - export workflows
 - SQLiteData and CloudKit wiring
 
-SwiftLLM should own:
+SwiftLM should own:
 
 - prompt and model-run metadata
 - chunking and context packing
@@ -190,4 +190,4 @@ SwiftLLM should own:
 - evaluation harnesses
 - local diagnostics models
 
-If a Chime In helper can be explained without saying "recording", "task", "date", "decision", or "capture mode", it may be a candidate for SwiftLLM.
+If a Chime In helper can be explained without saying "recording", "task", "date", "decision", or "capture mode", it may be a candidate for SwiftLM.

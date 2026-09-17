@@ -3,45 +3,45 @@
 import PackageDescription
 
 let package = Package(
-  name: "swift-llm",
+  name: "swift-lm",
   platforms: [
     .iOS(.v26),
     .macOS(.v26),
     .visionOS(.v26),
   ],
   products: [
-    .library(name: "SwiftLLM", targets: ["SwiftLLM"]),
-    .library(name: "SwiftLLMFoundationModels", targets: ["SwiftLLMFoundationModels"]),
-    .library(name: "SwiftLLMOpenAI", targets: ["SwiftLLMOpenAI"]),
-    .library(name: "SwiftLLMAnthropic", targets: ["SwiftLLMAnthropic"]),
-    .library(name: "SwiftLLMEvaluation", targets: ["SwiftLLMEvaluation"]),
+    .library(name: "SwiftLM", targets: ["SwiftLM"]),
+    .library(name: "SwiftLMFoundationModels", targets: ["SwiftLMFoundationModels"]),
+    .library(name: "SwiftLMOpenAI", targets: ["SwiftLMOpenAI"]),
+    .library(name: "SwiftLMAnthropic", targets: ["SwiftLMAnthropic"]),
+    .library(name: "SwiftLMEvaluation", targets: ["SwiftLMEvaluation"]),
   ],
   targets: [
-    .target(name: "SwiftLLM"),
+    .target(name: "SwiftLM"),
     .target(
-      name: "SwiftLLMFoundationModels",
-      dependencies: ["SwiftLLM"]
+      name: "SwiftLMFoundationModels",
+      dependencies: ["SwiftLM"]
     ),
     .target(
-      name: "SwiftLLMOpenAI",
-      dependencies: ["SwiftLLM"]
+      name: "SwiftLMOpenAI",
+      dependencies: ["SwiftLM"]
     ),
     .target(
-      name: "SwiftLLMAnthropic",
-      dependencies: ["SwiftLLM"]
+      name: "SwiftLMAnthropic",
+      dependencies: ["SwiftLM"]
     ),
     .target(
-      name: "SwiftLLMEvaluation",
-      dependencies: ["SwiftLLM"]
+      name: "SwiftLMEvaluation",
+      dependencies: ["SwiftLM"]
     ),
     .testTarget(
-      name: "SwiftLLMTests",
+      name: "SwiftLMTests",
       dependencies: [
-        "SwiftLLM",
-        "SwiftLLMFoundationModels",
-        "SwiftLLMOpenAI",
-        "SwiftLLMAnthropic",
-        "SwiftLLMEvaluation",
+        "SwiftLM",
+        "SwiftLMFoundationModels",
+        "SwiftLMOpenAI",
+        "SwiftLMAnthropic",
+        "SwiftLMEvaluation",
       ]
     ),
   ]

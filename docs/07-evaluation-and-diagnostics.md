@@ -4,7 +4,7 @@
 
 Foundation Models behavior can change with OS updates. Prompt changes can also create regressions that are hard to see manually.
 
-SwiftLLM should make prompt evaluation cheap enough that every serious app can keep a small golden corpus.
+SwiftLM should make prompt evaluation cheap enough that every serious app can keep a small golden corpus.
 
 ## Evaluation Corpus
 
@@ -29,7 +29,7 @@ For structured output, expected signals should support:
 - grounding expectations
 - safety/refusal expectations
 
-The first `SwiftLLMEvaluation` target now supports:
+The first `SwiftLMEvaluation` target now supports:
 
 - required and forbidden substring checks
 - deterministic text assertions through `TextEvaluationAssertion`
@@ -38,7 +38,7 @@ The first `SwiftLLMEvaluation` target now supports:
 - prompt-version reports through `PromptVersionEvaluationReport`
 - prompt-version matrices through `PromptVersionEvaluationMatrix`
 - model availability/fallback summaries through `ModelFallbackMatrix`
-- redacted provider run receipts through `LLMRunReceipt`
+- redacted provider run receipts through `LMRunReceipt`
 - token/latency/retrieval metrics through `EvaluationRunMetrics`
 - local JSON debug bundles through `LocalDebugBundle`
 
@@ -46,7 +46,7 @@ Reports are redacted by default. Raw model outputs are only included when an app
 
 ## Structured Assertions
 
-Structured assertions are closure-based and app-owned. SwiftLLM provides common helpers:
+Structured assertions are closure-based and app-owned. SwiftLM provides common helpers:
 
 - `nonEmptyString`
 - `maximumCount`
@@ -129,7 +129,7 @@ Useful metadata:
 
 `EvaluationRunMetrics` covers the first version of this metadata shape. It intentionally stores counts, durations, and identifiers rather than raw private content.
 
-`LLMRunReceipt` is the package-level receipt for one generation request. A
+`LMRunReceipt` is the package-level receipt for one generation request. A
 receipt records:
 
 - prompt ID and prompt version from request metadata
@@ -141,10 +141,10 @@ receipt records:
 
 Receipts are redacted by construction. They do not include user prompts, context
 item text, model response text, tool arguments, API keys, or user identifiers.
-Use `LLMRouter.respondWithReceipt(to:)` when call sites need the receipt
-alongside a response. Use `LLMRouter(runReceiptHandler:)` when existing
+Use `LMRouter.respondWithReceipt(to:)` when call sites need the receipt
+alongside a response. Use `LMRouter(runReceiptHandler:)` when existing
 `respond(to:)` call sites should emit receipts without changing their return
-type. Failed `respondWithReceipt(to:)` calls throw `LLMRunReceiptError`, which
+type. Failed `respondWithReceipt(to:)` calls throw `LMRunReceiptError`, which
 contains both the underlying error and the redacted receipt.
 
 `EvaluationRunMetrics` can be initialized from a receipt when evaluation reports
@@ -168,4 +168,4 @@ If an app needs raw prompt capture for debugging, it should be explicit, local-o
 
 Apple provides a Foundation Models instrument for profiling asset loading, prompt processing, inference, tool calling, and token usage.
 
-SwiftLLM should complement Instruments with app-level metadata and OSLog signposts so developers can line up package runs with system traces.
+SwiftLM should complement Instruments with app-level metadata and OSLog signposts so developers can line up package runs with system traces.

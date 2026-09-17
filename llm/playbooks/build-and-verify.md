@@ -18,8 +18,8 @@ swift build -Xswiftc -warnings-as-errors
 Open the generated showcase manually when UI changes matter:
 
 ```sh
-xcodegen generate --spec Examples/LLMShowcase/project.yml
-open Examples/LLMShowcase/LLMShowcase.xcodeproj
+xcodegen generate --spec Examples/LMShowcase/project.yml
+open Examples/LMShowcase/LMShowcase.xcodeproj
 ```
 
 ## Generated Files
@@ -39,7 +39,7 @@ that setup, pass the same flags the script uses.
 
 The OS 27 Foundation Models symbols compile only with Xcode 27 (Swift 6.4). With Xcode 26 the gated
 blocks are inactive, so a green build does not prove they compile. Until Xcode 27 is installed,
-`scratch/os27-stub-check/check.sh <repo-root>` compiles `SwiftLLMFoundationModels` with the gate
+`scratch/os27-stub-check/check.sh <repo-root>` compiles `SwiftLMFoundationModels` with the gate
 forced on against a stub of Apple's documented OS 27 API.
 
 ## Common Failures

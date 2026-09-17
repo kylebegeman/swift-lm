@@ -4,7 +4,7 @@
 
 Retrieval-augmented generation is how small context windows become practical. For Apple apps, local RAG should retrieve private user data from local stores and provide only the relevant snippets to the on-device model.
 
-SwiftLLM should provide local-first RAG primitives, not a server-dependent framework.
+SwiftLM should provide local-first RAG primitives, not a server-dependent framework.
 
 ## Recommended Architecture
 
@@ -29,7 +29,7 @@ Initial options:
 - NaturalLanguage embeddings where available and appropriate
 - precomputed app-specific indexes
 
-SwiftLLM should not force a database dependency in the core target. It should define small protocols and value types so apps can plug in SQLiteData, GRDB, Core Data, or custom stores.
+SwiftLM should not force a database dependency in the core target. It should define small protocols and value types so apps can plug in SQLiteData, GRDB, Core Data, or custom stores.
 
 ## Retrieval Result Shape
 
@@ -61,7 +61,7 @@ It can also become an `EvidenceSource` for structured generation validation.
 
 ## Current Toolkit
 
-The first local RAG slice is dependency-free and lives in `SwiftLLM`:
+The first local RAG slice is dependency-free and lives in `SwiftLM`:
 
 - `SourceReference`
 - `RetrievableDocument`

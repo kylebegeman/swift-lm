@@ -2,7 +2,7 @@
 
 ## Purpose
 
-SwiftLLM is a Swift package for building reliable, local-first language model features on Apple platforms, with optional provider-backed generation when an app explicitly configures it.
+SwiftLM is a Swift package for building reliable, local-first language model features on Apple platforms, with optional provider-backed generation when an app explicitly configures it.
 
 The goal is not to turn Apple Foundation Models into frontier cloud models. The goal is to apply production AI system techniques around the on-device model so it becomes more useful, more predictable, and easier to ship inside real Apple apps.
 
@@ -27,7 +27,7 @@ Apple Foundation Models provide an on-device language model that is strongest at
 
 The raw framework is intentionally low-level. It gives apps access to sessions, prompts, guided generation, tools, availability checks, guardrails, token counts, and performance instrumentation. It does not give every app a ready-made production reliability layer.
 
-SwiftLLM should become that reliability layer.
+SwiftLM should become that reliability layer.
 
 For private app work, the same reliability layer is also useful when switching between Foundation Models, OpenAI, and Anthropic. The package now treats provider access as an adapter concern: the core API speaks in messages, tools, schemas, responses, and fallback reasons; each provider target translates that shape into its native HTTP or framework API.
 
@@ -60,21 +60,21 @@ Chime In is the first live testbed. Chime In needs private, offline transcriptio
 - topics
 - tags
 
-Those needs are app-specific, but the underlying primitives are generic. SwiftLLM should own the generic machinery. Chime In should own the domain model and product workflow.
+Those needs are app-specific, but the underlying primitives are generic. SwiftLM should own the generic machinery. Chime In should own the domain model and product workflow.
 
 ## Current Products
 
 | Product | Responsibility |
 |---|---|
-| `SwiftLLM` | app-neutral client, prompt, context, retrieval, fallback, validation, router, and metadata primitives |
-| `SwiftLLMFoundationModels` | Apple Foundation Models availability, token counting, generation, defaults, and adapter behavior |
-| `SwiftLLMOpenAI` | OpenAI Responses API adapter |
-| `SwiftLLMAnthropic` | Anthropic Messages API adapter |
-| `SwiftLLMEvaluation` | prompt regression, structured assertions, reports, and local debug bundle utilities |
+| `SwiftLM` | app-neutral client, prompt, context, retrieval, fallback, validation, router, and metadata primitives |
+| `SwiftLMFoundationModels` | Apple Foundation Models availability, token counting, generation, defaults, and adapter behavior |
+| `SwiftLMOpenAI` | OpenAI Responses API adapter |
+| `SwiftLMAnthropic` | Anthropic Messages API adapter |
+| `SwiftLMEvaluation` | prompt regression, structured assertions, reports, and local debug bundle utilities |
 
 ## Non-Goals
 
-SwiftLLM should not:
+SwiftLM should not:
 
 - host a backend
 - add telemetry by default
@@ -102,6 +102,6 @@ The package is succeeding when a developer can:
 
 ## Design Tone
 
-SwiftLLM should be boring in the best way: explicit types, predictable defaults, small abstractions, and no magic provider behavior.
+SwiftLM should be boring in the best way: explicit types, predictable defaults, small abstractions, and no magic provider behavior.
 
 When in doubt, prefer APIs that make the model's uncertainty visible instead of hiding it behind a too-smooth helper.

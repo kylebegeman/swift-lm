@@ -2,7 +2,7 @@
 
 ## Current Status
 
-SwiftLLM is ready for a local `1.0.0` release tag after the final validation script passes.
+SwiftLM is ready for a local `1.0.0` release tag after the final validation script passes.
 
 The repository is structured as a public Swift package:
 
@@ -44,19 +44,19 @@ The repository is structured as a public Swift package:
 
 ## API Stability
 
-SwiftLLM follows semantic versioning from `1.0.0` onward. Source-breaking changes should be reserved for major versions unless a security or platform compatibility issue leaves no practical alternative.
+SwiftLM follows semantic versioning from `1.0.0` onward. Source-breaking changes should be reserved for major versions unless a security or platform compatibility issue leaves no practical alternative.
 
 ## Naming
 
-Package name: `swift-llm`
+Package name: `swift-lm` (renamed from `swift-llm` in 2.0.0, because the library handles language models of every size)
 
 Public product names:
 
-- `SwiftLLM`
-- `SwiftLLMFoundationModels`
-- `SwiftLLMOpenAI`
-- `SwiftLLMAnthropic`
-- `SwiftLLMEvaluation`
+- `SwiftLM`
+- `SwiftLMFoundationModels`
+- `SwiftLMOpenAI`
+- `SwiftLMAnthropic`
+- `SwiftLMEvaluation`
 
 Future product names should stay short and explicit.
 
@@ -64,7 +64,7 @@ Future product names should stay short and explicit.
 
 Likely one-line description:
 
-> SwiftLLM is a Swift-native reliability layer for local-first language model features on Apple platforms.
+> SwiftLM is a Swift-native reliability layer for local-first language model features on Apple platforms.
 
 Avoid implying:
 
@@ -92,6 +92,6 @@ These are the parts most examples skip and most production apps need.
 
 ## License Rationale
 
-Apache-2.0 is the recommended first public license because SwiftLLM is infrastructure-adjacent library code. The explicit patent grant and contribution terms are useful for app teams and companies evaluating adoption.
+Apache-2.0 is the recommended first public license because SwiftLM is infrastructure-adjacent library code. The explicit patent grant and contribution terms are useful for app teams and companies evaluating adoption.
 
 MIT would also be reasonable if maximum familiarity is more important than the patent grant. Any future license change must update `README.md`, `LICENSE.md`, package metadata, and release notes together.

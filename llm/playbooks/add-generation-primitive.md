@@ -7,10 +7,10 @@ Use this playbook when adding a new prompt, context, validation, fallback, gener
 ## Steps
 
 1. Decide the target.
-   - app-neutral: `SwiftLLM`
-   - Foundation Models-specific: `SwiftLLMFoundationModels`
-   - evaluation/testing helper: `SwiftLLMEvaluation`
-   - showcase-only UI: `Examples/LLMShowcase`
+   - app-neutral: `SwiftLM`
+   - Foundation Models-specific: `SwiftLMFoundationModels`
+   - evaluation/testing helper: `SwiftLMEvaluation`
+   - showcase-only UI: `Examples/LMShowcase`
 
 2. Add the smallest public type that expresses the concept.
 
@@ -30,7 +30,7 @@ Use this playbook when adding a new prompt, context, validation, fallback, gener
 - Prefer explicit failure/fallback cases over silent nils.
 - Keep raw prompts and raw outputs out of stored diagnostics by default.
 - Prefer structured generation APIs over app-specific candidate wrappers when a primitive can apply across apps.
-- Keep app final-draft models outside SwiftLLM.
+- Keep app final-draft models outside SwiftLM.
 
 ## Read Next
 

@@ -15,7 +15,7 @@
       "id": "start-here",
       "path": "llm/START_HERE.md",
       "kind": "entrypoint",
-      "summary": "Fast orientation for future agents working in SwiftLLM.",
+      "summary": "Fast orientation for future agents working in SwiftLM.",
       "keywords": ["routing", "entrypoint", "read order"]
     },
     {
@@ -50,8 +50,8 @@
       "id": "release-notes-2-0-0",
       "path": "docs/16-2.0.0-release-notes.md",
       "kind": "release-notes",
-      "summary": "2.0.0 OS 27 Foundation Models adoption, provider adapter fixes, and validation summary.",
-      "keywords": ["release", "2.0.0", "OS 27", "Private Cloud Compute"]
+      "summary": "2.0.0 rename, OS 27 Foundation Models adoption, provider adapter fixes, and validation summary.",
+      "keywords": ["release", "2.0.0", "swift-lm", "OS 27", "Private Cloud Compute"]
     },
     {
       "id": "reliability-patterns",
@@ -64,7 +64,7 @@
       "id": "chime-in-incubation",
       "path": "llm/capabilities/chime-in-incubation.md",
       "kind": "capability",
-      "summary": "How Chime In should test and adopt SwiftLLM without leaking app-specific models.",
+      "summary": "How Chime In should test and adopt SwiftLM without leaking app-specific models.",
       "keywords": ["Chime In", "incubation", "adoption"]
     },
     {
