@@ -15,7 +15,7 @@ Read this before working in SwiftLM. It gives the shortest route to the relevant
   - `SwiftLMAnthropic`
   - `SwiftLMEvaluation`
 - Primary language: Swift 6.2 or newer. Xcode 26 builds the package; Xcode 27 (Swift 6.4) compiles the gated OS 27 paths.
-- Platforms: iOS 26, macOS 26, visionOS 26, with OS 27 Foundation Models features behind `#if compiler(>=6.4)`.
+- Platforms: iOS 26, macOS 26, visionOS 26, and watchOS 26, with OS 27 Foundation Models features behind `#if compiler(>=6.4)`. The Foundation Models adapter is excluded on watchOS.
 - Mission: reliability primitives for local-first Apple language model features, from the on-device model to Private Cloud Compute and explicit cloud providers.
 - Naming: package `swift-lm`, products `SwiftLM*`, types `LM*`. The `llm/` folder is agent guidance, not the package name.
 - First incubation app: Chime In.

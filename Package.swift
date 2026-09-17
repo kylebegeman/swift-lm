@@ -8,6 +8,7 @@ let package = Package(
     .iOS(.v26),
     .macOS(.v26),
     .visionOS(.v26),
+    .watchOS(.v26),
   ],
   products: [
     .library(name: "SwiftLM", targets: ["SwiftLM"]),

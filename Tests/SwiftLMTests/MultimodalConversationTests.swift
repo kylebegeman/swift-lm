@@ -5,7 +5,7 @@ import SwiftLMFoundationModels
 import SwiftLMOpenAI
 import Testing
 
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && !os(watchOS)
 import FoundationModels
 #endif
 
@@ -271,7 +271,7 @@ struct MultimodalConversationTests {
     }
   }
 
-  #if canImport(FoundationModels)
+  #if canImport(FoundationModels) && !os(watchOS)
   @Test
   func foundationModelSessionOpensOrReportsUnavailability() async throws {
     do {

@@ -21,6 +21,8 @@ Breaking: the package is now `swift-lm` with `SwiftLM*` products, and the `LLM` 
 - `LMPrivacyMode.privateCloudCompute`.
 - `FallbackReason.quotaExceeded`, `FallbackReason.timeout`, `LMClientErrorReason.quotaExceeded`, and `LMClientErrorReason.timeout`. The default router policy retries both.
 - `LMWorkflowError`, which carries the diagnostics accumulated before a step failed, and the `stepFailed` workflow event.
+- watchOS 26 support for the core, OpenAI, Anthropic, and evaluation products. The Foundation Models adapter compiles on watchOS and reports that the framework is unavailable there.
+- CI builds the package for iOS, visionOS, and watchOS with warnings as errors on both Xcode images.
 - Run receipts for `LMRouter.stream(to:)`.
 - `LMEndpointRegistry.router(primaryID:usesRemainingEnabledEndpointsAsFallbacks:)`.
 - OpenAI: `storesResponses` (default `false`), `acceptsSamplingParameters` with model-family defaults, reasoning effort, `response.incomplete` handling, refusal detection, flat stream `error` events, error code classification, encrypted reasoning replay, a ten-minute transport timeout, and `OpenAIHTTPTransport.live(session:)`.

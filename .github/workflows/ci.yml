@@ -49,5 +49,17 @@ jobs:
       - name: Strict build
         run: swift build -Xswiftc -warnings-as-errors
 
+      - name: Build for iOS, visionOS, and watchOS
+        run: |
+          for platform in iOS visionOS watchOS; do
+            echo "Building for $platform"
+            xcodebuild build \
+              -scheme swift-lm-Package \
+              -destination "generic/platform=$platform" \
+              -quiet \
+              CODE_SIGNING_ALLOWED=NO \
+              SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
+          done
+
       - name: Validate
         run: ./scripts/validate.sh

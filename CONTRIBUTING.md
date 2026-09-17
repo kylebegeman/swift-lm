@@ -58,6 +58,7 @@ swift build -Xswiftc -warnings-as-errors
 
 SwiftLM keeps iOS, macOS, and visionOS 26 as the package minimum and adopts OS 27 APIs behind a gate:
 
+- Framework-dependent code is wrapped in `#if canImport(FoundationModels) && !os(watchOS)`, because watchOS has no on-device model and the adapter does not support Private Cloud Compute there yet.
 - OS 27 symbols live inside `#if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY` blocks with `#available` checks for the 27 releases, because Xcode 27 ships Swift 6.4 with the OS 27 SDKs. Pass `-Xswiftc -DSWIFTLM_OS26_SDK_ONLY` to build with a Swift 6.4 toolchain that still uses an OS 26 SDK.
 - Keep source compiling on the OS 26 SDKs and keep every OS 26 code path in place; apps built with Xcode 27 still run on OS 26 devices.
 - Normalize both error generations. Apps built with Xcode 27 receive `LanguageModelError`, `SystemLanguageModel.Error`, and `LanguageModelSession.Error` on OS 27 devices and `LanguageModelSession.GenerationError` on OS 26 devices.

@@ -149,9 +149,10 @@ public struct FoundationModelClient: Sendable {
   )
 
   /// A client for Apple's system models: the on-device model and, on the OS 27 releases, Private
-  /// Cloud Compute.
+  /// Cloud Compute. On watchOS, which has no on-device model, the client reports that Foundation
+  /// Models are unavailable.
   public static let live: Self = {
-    #if canImport(FoundationModels)
+    #if canImport(FoundationModels) && !os(watchOS)
     Self.makeLive(source: .system)
     #else
     Self.unavailable

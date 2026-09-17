@@ -1,11 +1,14 @@
 import Foundation
 import SwiftLM
 
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && !os(watchOS)
 import FoundationModels
 #endif
 
 /// Maps framework errors into `FoundationModelFailure` values.
+///
+/// On watchOS the framework offers only Private Cloud Compute, which this adapter does not support
+/// there yet, so only package errors are normalized.
 ///
 /// Apps built with Xcode 27 receive the OS 27 error taxonomy (`LanguageModelError`,
 /// `SystemLanguageModel.Error`, `LanguageModelSession.Error`, and
@@ -17,7 +20,7 @@ public enum FoundationModelErrorNormalizer {
       return failure
     }
 
-    #if canImport(FoundationModels)
+    #if canImport(FoundationModels) && !os(watchOS)
     #if compiler(>=6.4) && !SWIFTLM_OS26_SDK_ONLY
     if #available(iOS 27.0, macOS 27.0, visionOS 27.0, *),
        let failure = foundationModelFailure(fromOS27Error: error)

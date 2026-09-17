@@ -24,7 +24,7 @@ This package is shaped by Apple's official Foundation Models documentation:
 
 Foundation Models is available on Apple platforms introduced with iOS, iPadOS, macOS, Mac Catalyst, and visionOS 26. The OS 27 releases add watchOS through Private Cloud Compute.
 
-The package targets iOS 26, macOS 26, and visionOS 26 because the first useful version is built around Foundation Models and Apple Intelligence-era APIs.
+The package targets iOS 26, macOS 26, visionOS 26, and watchOS 26. Apple Watch has no on-device model, and SwiftLM does not yet route watchOS requests to Private Cloud Compute, so on watchOS the Foundation Models adapter compiles without the framework and reports `unavailableInBuild`. The core, cloud, and evaluation products work normally there.
 
 The OS 27 generation expands Foundation Models with Private Cloud Compute, platform-reported context size, reasoning levels, usage reporting, tool calling modes, image input, Dynamic Profiles, provider packages through `LanguageModel`, a new error taxonomy, Evaluations, `fm`, Python SDK support, Core AI, and MLX integrations. SwiftLM 2.0 adopts the session-level pieces (Private Cloud Compute, context size, reasoning, usage, tool calling modes, and errors) behind an SDK gate and represents the rest with provider-neutral types.
 

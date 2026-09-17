@@ -1,7 +1,7 @@
 import Foundation
 import SwiftLM
 
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && !os(watchOS)
 import FoundationModels
 import ImageIO
 

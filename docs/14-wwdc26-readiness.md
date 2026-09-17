@@ -152,7 +152,7 @@ Still planned:
 - Run a Private Cloud Compute feature on a device with the managed entitlement.
 - Transcript compaction, context snapshots, cache-aware diagnostics, and transcript error policy types.
 - Images in earlier conversation turns, and tool calls in provider-neutral Foundation Models history.
-- Private Cloud Compute on Apple Watch.
+- Private Cloud Compute on Apple Watch. The package already builds for watchOS 26 and 27; the Foundation Models adapter is excluded there until the watchOS paths avoid the on-device model and the OS 26 error types, which Apple marks unavailable on watchOS.
 - Evaluations framework alignment.
 
 Decisions:

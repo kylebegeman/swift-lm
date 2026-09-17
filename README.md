@@ -1,7 +1,7 @@
 # SwiftLM
 
 [![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org)
-[![Platforms](https://img.shields.io/badge/platforms-iOS%2026%20%7C%20macOS%2026%20%7C%20visionOS%2026-lightgrey.svg)](#requirements)
+[![Platforms](https://img.shields.io/badge/platforms-iOS%2026%20%7C%20macOS%2026%20%7C%20visionOS%2026%20%7C%20watchOS%2026-lightgrey.svg)](#requirements)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE.md)
 [![CI](https://github.com/kylebegeman/swift-lm/actions/workflows/ci.yml/badge.svg)](https://github.com/kylebegeman/swift-lm/actions/workflows/ci.yml)
 
@@ -51,7 +51,7 @@ flowchart LR
 ## Requirements
 
 - Swift 6.2 or newer
-- iOS 26, macOS 26, or visionOS 26 minimum package targets
+- iOS 26, macOS 26, visionOS 26, or watchOS 26 minimum package targets. On watchOS, the core, OpenAI, Anthropic, and evaluation products work fully, and `FoundationModelClient.live` reports that Foundation Models are unavailable.
 - Xcode 26 for the OS 26 SDKs; Xcode 27 (Swift 6.4) to compile the OS 27 paths
 - XcodeGen only for the optional showcase app
 
