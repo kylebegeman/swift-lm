@@ -201,7 +201,7 @@ Reference:
 
 ## Phase 8: OS 27 Adoption And 2.0 Audit
 
-Status: implemented and built on GitHub's Xcode 27 beta image; pending a device run with Private Cloud Compute.
+Status: released in 2.0.0, built with Xcode 27.0 and in CI; pending a device run with Private Cloud Compute.
 
 - rename to `swift-lm` with `SwiftLM*` products and `LM*` types: completed
 - Private Cloud Compute execution target, availability, quota, and reasoning levels: implemented behind the OS 27 SDK gate
@@ -214,7 +214,7 @@ Status: implemented and built on GitHub's Xcode 27 beta image; pending a device 
 - multi-turn transcripts and reusable `FoundationModelSession` conversations: implemented
 - image input across providers, with Foundation Models attachments on the OS 27 releases: implemented
 - custom `LanguageModel` support for Core AI, MLX, and provider packages: implemented
-- build the gated path with Xcode 27: done in CI on the `xcode-27` preview image
+- build the gated path with Xcode 27: done in CI on the `xcode-27` preview image and locally with Xcode 27.0
 - run a Private Cloud Compute feature on a device: pending
 - Dynamic Profiles: not wrapped by design; see [WWDC26 Readiness](14-wwdc26-readiness.md)
 - transcript compaction and Private Cloud Compute on Apple Watch: not started

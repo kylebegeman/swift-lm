@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 - Unreleased
+## 2.0.0 - 2026-09-23
 
 Breaking: the package is now `swift-lm` with `SwiftLM*` products, and the `LLM` type prefix is now `LM` (`LMClient`, `LMRequest`, `LMRouter`, and so on). The library handles language models of every size, not only large ones. See `docs/16-2.0.0-release-notes.md` for the migration guide.
 

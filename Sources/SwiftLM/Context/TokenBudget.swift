@@ -61,8 +61,11 @@ public struct TextChunker: Sendable {
   public var maxTokensPerChunk: Int
   public var overlapTokens: Int
 
-  /// - Parameter overlapTokens: Tokens repeated between consecutive chunks. It is clamped to half
-  ///   of `maxTokensPerChunk` so a large overlap cannot degrade chunking into a one-word stride.
+  /// - Parameters:
+  ///   - maxTokensPerChunk: The largest number of tokens a chunk may hold.
+  ///   - overlapTokens: Tokens repeated between consecutive chunks. It is clamped to half of
+  ///     `maxTokensPerChunk` so a large overlap cannot degrade chunking into a one-word stride.
+  ///   - counter: Counts the tokens in each candidate chunk.
   public init(
     maxTokensPerChunk: Int,
     overlapTokens: Int = 64,
